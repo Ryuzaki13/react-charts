@@ -1,11 +1,12 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "declaration": true,
-    "declarationDir": "./types",
-    "emitDeclarationOnly": true,
-    "noEmit": false
-  },
-  "files": ["./src/index.ts"],
-  "exclude": ["./src/**/*"]
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "declaration": true,
+        "declarationDir": "./types",
+        "rootDir": "./src",
+        "emitDeclarationOnly": true,
+        "noEmit": false
+    },
+    "files": ["./src/index.ts"],
+    "exclude": ["./src/**/*"]
 }

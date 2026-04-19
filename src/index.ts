@@ -1,2 +1,3 @@
-export { Chart } from './components/Chart'
-export * from './types'
+export { Chart } from "./components/Chart";
+export * from "./types";
+

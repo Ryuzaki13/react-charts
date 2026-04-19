@@ -1,68 +1,65 @@
-import React from 'react'
+import React from "react";
 
-export default function useRect(
-  element: Element | null | undefined,
-  enabled: boolean
-): DOMRect {
-  const rerender = React.useReducer(() => ({}), [])[1]
+export default function useRect(element: Element | null | undefined, enabled: boolean): DOMRect {
+    const rerender = React.useReducer(() => ({}), [])[1];
 
-  const rectRef = React.useRef<DOMRect>({
-    width: 0,
-    height: 0,
-    x: 0,
-    y: 0,
-    left: 0,
-    top: 0,
-    right: 0,
-    bottom: 0,
-  } as DOMRect)
+    const rectRef = React.useRef<DOMRect>({
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+        left: 0,
+        top: 0,
+        right: 0,
+        bottom: 0,
+    } as DOMRect);
 
-  const measure = React.useCallback(() => {
-    if (element) {
-      rectRef.current = element.getBoundingClientRect()
-    }
-  }, [element])
+    const measure = React.useCallback(() => {
+        if (element) {
+            rectRef.current = element.getBoundingClientRect();
+        }
+    }, [element]);
 
-  if (!rectRef.current) {
-    measure()
-  }
-
-  React.useEffect(() => {
-    if (!element || !enabled) {
-      return
+    if (!rectRef.current) {
+        measure();
     }
 
-    const cb = () => {
-      measure()
-      rerender()
-    }
+    React.useEffect(() => {
+        if (!element || !enabled) {
+            return;
+        }
 
-    document.addEventListener('scroll', cb, true)
+        const cb = () => {
+            measure();
+            rerender();
+        };
 
-    return () => {
-      document.removeEventListener('scroll', cb, true)
-    }
-  }, [element, enabled, measure, rerender])
+        document.addEventListener("scroll", cb, true);
 
-  React.useEffect(() => {
-    if (!element || !enabled) {
-      return
-    }
+        return () => {
+            document.removeEventListener("scroll", cb, true);
+        };
+    }, [element, enabled, measure, rerender]);
 
-    measure()
-    rerender()
+    React.useEffect(() => {
+        if (!element || !enabled) {
+            return;
+        }
 
-    const observer = new ResizeObserver(() => {
-      measure()
-      rerender()
-    })
+        measure();
+        rerender();
 
-    observer.observe(element as Element)
+        const observer = new ResizeObserver(() => {
+            measure();
+            rerender();
+        });
 
-    return () => {
-      observer.unobserve(element as Element)
-    }
-  }, [element, enabled, measure, rerender])
+        observer.observe(element as Element);
 
-  return rectRef.current
+        return () => {
+            observer.unobserve(element as Element);
+        };
+    }, [element, enabled, measure, rerender]);
+
+    return rectRef.current;
 }

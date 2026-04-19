@@ -1,13 +1,13 @@
-import React from 'react'
+import React from "react";
 
-import useIsomorphicLayoutEffect from './useIsomorphicLayoutEffect'
+import useIsomorphicLayoutEffect from "./useIsomorphicLayoutEffect";
 
 export default function usePrevious<T>(val: T) {
-  const ref = React.useRef<T>()
+    const ref = React.useRef<T>(null);
 
-  useIsomorphicLayoutEffect(() => {
-    ref.current = val
-  }, [val])
+    useIsomorphicLayoutEffect(() => {
+        ref.current = val;
+    }, [val]);
 
-  return ref.current
+    return ref.current;
 }

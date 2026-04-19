@@ -1,19 +1,19 @@
-import * as React from 'react'
+import * as React from "react";
 
-import { ChartContextValue } from '../types'
+import { ChartContextValue } from "../types";
 
-const chartContext = React.createContext<any>(null!)
+const chartContext = React.createContext<any>(null!);
 
 export function ChartContextProvider<TDatum>({
-  value,
-  children,
+    value,
+    children,
 }: {
-  value: () => ChartContextValue<TDatum>
-  children: React.ReactNode
+    value: () => ChartContextValue<TDatum>;
+    children: React.ReactNode;
 }) {
-  return <chartContext.Provider value={value} children={children} />
+    return <chartContext.Provider value={value} children={children} />;
 }
 
 export default function useChartContext<TDatum>() {
-  return React.useContext(chartContext)() as ChartContextValue<TDatum>
+    return React.useContext(chartContext)() as ChartContextValue<TDatum>;
 }
