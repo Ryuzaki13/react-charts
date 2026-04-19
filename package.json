@@ -1,11 +1,14 @@
 {
     "name": "@ryuzaki13/react-charts",
     "version": "1.0.0-semantic-release",
+    "publishConfig": {
+        "access": "public"
+    },
     "description": "Simple, immersive & interactive charts for React. Flexible, declarative, and highly configurable.",
     "author": "Ryuzaki13",
     "license": "MIT",
-    "repository": "ryuzaki13/react-charts",
-    "homepage": "https://github.com/ryuzaki13/react-charts#readme",
+    "repository": "Ryuzaki13/react-charts",
+    "homepage": "https://github.com/Ryuzaki13/react-charts#readme",
     "funding": {
         "type": "github",
         "url": "https://github.com/sponsors/tannerlinsley"
