@@ -1,44 +1,67 @@
-name: react-charts tests
+name: react-charts CI
 
 on:
   push:
     branches:
-      - 'main'
-      - 'beta'
+      - main
+      - beta
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    name: 'Node ${{ matrix.node }}'
+    name: Test on Node ${{ matrix.node }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node: [12, 14, 16]
+        node: [20, 22]
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Install dependencies
-        uses: bahmutov/npm-install@v1
-      - run: yarn test:ci
+          cache: yarn
 
-  publish-module:
-    name: 'Publish Module to NPM'
-    # needs: test
-    # publish only when merged in master on original repo, not on PR
-    if: github.repository == 'tanstack/react-charts' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 14
-          registry-url: https://registry.npmjs.org/
       - name: Install dependencies
-        uses: bahmutov/npm-install@v1
-      - run: yarn build
-      - run: npx semantic-release@17
+        run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        run: yarn test:ci
+
+  publish:
+    name: Publish to npm
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/beta')
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build
+        run: yarn build
+
+      - name: Release
+        run: npx semantic-release
         env:
-          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
-          GH_TOKEN: ${{secrets.GH_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
