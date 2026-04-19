@@ -113,11 +113,7 @@
     },
     "release": {
         "branches": [
-            "main",
-            {
-                "name": "beta",
-                "prerelease": true
-            }
+            "beta"
         ]
     },
     "resolutions": {
