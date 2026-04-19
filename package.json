@@ -1,138 +1,126 @@
 {
-  "name": "@ryuzaki13/react-charts",
-  "version": "1.0.0-semantic-release",
-  "description": "Simple, immersive & interactive charts for React. Flexible, declarative, and highly configurable.",
-  "author": "Ryuzaki13",
-  "license": "MIT",
-  "repository": "ryuzaki13/react-charts",
-  "homepage": "https://github.com/ryuzaki13/react-charts#readme",
-  "funding": {
-    "type": "github",
-    "url": "https://github.com/sponsors/tannerlinsley"
-  },
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "types/index.d.ts",
-  "unpkg": "dist/react-charts.development.js",
-  "files": [
-    "dist",
-    "es",
-    "lib",
-    "scripts",
-    "types"
-  ],
-  "scripts": {
-    "test": "is-ci \"test:ci\" \"test:dev\"",
-    "test:dev": "npm run test:types && npm run test:eslint && jest --watch",
-    "test:ci": "npm run test:types && npm run test:eslint && jest",
-    "test:coverage": "npm run test:ci",
-    "test:types": "tsc --noEmit",
-    "test:eslint": "eslint --ext .ts,.tsx ./src",
-    "build": "npm run build:commonjs && npm run build:es && npm run build:umd && npm run build:types",
-    "build:commonjs": "rimraf ./lib && cross-env BABEL_ENV=commonjs babel --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir lib",
-    "build:es": "rimraf ./es && babel --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir es",
-    "build:umd": "rimraf ./dist && cross-env NODE_ENV=production rollup -c",
-    "build:types": "rimraf ./types && tsc --project ./tsconfig.types.json && replace 'import type' 'import' ./types -r --silent && replace 'export type' 'export' ./types -r --silent",
-    "watch": "npm run watch:commonjs & npm run watch:es & npm run watch:umd & npm run watch:types",
-    "watch:commonjs": "rimraf ./lib && cross-env BABEL_ENV=commonjs babel --watch --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir lib",
-    "watch:es": "rimraf ./es && babel --watch --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir es",
-    "watch:umd": "rimraf ./dist && cross-env NODE_ENV=production rollup -w -c",
-    "watch:types": "rimraf ./types && tsc --watch --project ./tsconfig.types.json && replace 'import type' 'import' ./types -r --silent && replace 'export type' 'export' ./types -r --silent",
-    "now-build": "npm install && cd www && npm install && npm run build",
-    "start": "npm run watch",
-    "format": "prettier {.,src,src/**,example/src,example/src/**,types}/*.{md,js,jsx,tsx,json} --write",
-    "typedoc": "typedoc"
-  },
-  "peerDependencies": {
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5"
-  },
-  "dependencies": {
-    "@babel/runtime": "^7.29.2",
-    "d3-array": "^3.2.4",
-    "d3-delaunay": "^6.0.4",
-    "d3-scale": "^4.0.2",
-    "d3-shape": "^3.2.0",
-    "d3-time": "^3.1.0",
-    "d3-time-format": "^4.1.0",
-    "react-error-boundary": "^6.1.1",
-    "ts-toolbelt": "^9.6.0"
-  },
-  "devDependencies": {
-    "@babel/cli": "^7.28.6",
-    "@babel/core": "^7.29.0",
-    "@babel/eslint-parser": "^7.28.6",
-    "@babel/plugin-transform-runtime": "^7.29.0",
-    "@babel/preset-env": "^7.29.2",
-    "@babel/preset-react": "^7.28.5",
-    "@babel/preset-typescript": "^7.28.5",
-
-    "@rollup/plugin-babel": "^7.0.0",
-    "@rollup/plugin-commonjs": "^29.0.2",
-    "@rollup/plugin-node-resolve": "^16.0.3",
-    "@rollup/plugin-replace": "^6.0.3",
-    "@rollup/plugin-terser": "^0.4.4",
-    "@svgr/rollup": "^8.1.0",
-
-    "@testing-library/react": "^16.3.2",
-    "@types/d3-array": "^3.2.2",
-    "@types/d3-delaunay": "^6.0.4",
-    "@types/d3-scale": "^4.0.9",
-    "@types/d3-shape": "^3.1.8",
-    "@types/d3-time-format": "^4.0.3",
-    "@types/jest": "^30.0.0",
-    "@types/raf": "^3.4.3",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
-
-    "babel-jest": "^30.3.0",
-    "babel-plugin-const-enum": "^1.2.0",
-    "babel-plugin-transform-async-to-promises": "^0.8.18",
-    "cross-env": "^10.1.0",
-    "eslint": "^9.x",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^7.2.1",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.1.1",
-
-    "is-ci-cli": "^2.2.0",
-    "jest": "^30.3.0",
-    "prettier": "3.8.3",
-    "react": "^19.2.5",
-    "react-dom": "^19.2.5",
-    "replace": "^1.2.2",
-    "rimraf": "^6.0.1",
-    "rollup": "^4.60.2",
-    "rollup-plugin-jscc": "^2.0.0",
-    "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-prettier": "^4.1.2",
-    "rollup-plugin-size": "^0.2.2",
-    "rollup-plugin-visualizer": "^6.0.5",
-    "typescript": "^6.0.3"
-  },
-  "release": {
-    "branches": [
-      "+([0-9])?(.{+([0-9]),x}).x",
-      "main",
-      "next",
-      "next-major",
-      {
-        "name": "beta",
-        "prerelease": true
-      },
-      {
-        "name": "alpha",
-        "prerelease": true
-      }
-    ]
-  },
-  "resolutions": {
-    "d3-scale/d3-interpolate/d3-color": "^3.1.0"
-  }
+    "name": "@ryuzaki13/react-charts",
+    "version": "1.0.0-semantic-release",
+    "description": "Simple, immersive & interactive charts for React. Flexible, declarative, and highly configurable.",
+    "author": "Ryuzaki13",
+    "license": "MIT",
+    "repository": "ryuzaki13/react-charts",
+    "homepage": "https://github.com/ryuzaki13/react-charts#readme",
+    "funding": {
+        "type": "github",
+        "url": "https://github.com/sponsors/tannerlinsley"
+    },
+    "main": "lib/index.js",
+    "module": "es/index.js",
+    "types": "types/index.d.ts",
+    "unpkg": "dist/react-charts.development.js",
+    "files": [
+        "dist",
+        "es",
+        "lib",
+        "scripts",
+        "types"
+    ],
+    "scripts": {
+        "test": "is-ci \"test:ci\" \"test:dev\"",
+        "test:dev": "npm run test:types && npm run test:eslint && jest --watch",
+        "test:ci": "npm run test:types && npm run test:eslint && jest",
+        "test:coverage": "npm run test:ci",
+        "test:types": "tsc --noEmit",
+        "test:eslint": "eslint --ext .ts,.tsx ./src",
+        "build": "npm run build:commonjs && npm run build:es && npm run build:umd && npm run build:types",
+        "build:commonjs": "rimraf ./lib && cross-env BABEL_ENV=commonjs babel --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir lib",
+        "build:es": "rimraf ./es && babel --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir es",
+        "build:umd": "rimraf ./dist && cross-env NODE_ENV=production rollup -c",
+        "build:types": "rimraf ./types && tsc --project ./tsconfig.types.json && replace 'import type' 'import' ./types -r --silent && replace 'export type' 'export' ./types -r --silent",
+        "watch": "npm run watch:commonjs & npm run watch:es & npm run watch:umd & npm run watch:types",
+        "watch:commonjs": "rimraf ./lib && cross-env BABEL_ENV=commonjs babel --watch --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir lib",
+        "watch:es": "rimraf ./es && babel --watch --extensions .ts,.tsx --ignore ./src/**/tests/**/* ./src --out-dir es",
+        "watch:umd": "rimraf ./dist && cross-env NODE_ENV=production rollup -w -c",
+        "watch:types": "rimraf ./types && tsc --watch --project ./tsconfig.types.json && replace 'import type' 'import' ./types -r --silent && replace 'export type' 'export' ./types -r --silent",
+        "now-build": "npm install && cd www && npm install && npm run build",
+        "start": "npm run watch",
+        "format": "prettier {.,src,src/**,example/src,example/src/**,types}/*.{md,js,jsx,tsx,json} --write",
+        "typedoc": "typedoc"
+    },
+    "peerDependencies": {
+        "react": "^19.2.5",
+        "react-dom": "^19.2.5"
+    },
+    "dependencies": {
+        "@babel/runtime": "^7.29.2",
+        "d3-array": "^3.2.4",
+        "d3-delaunay": "^6.0.4",
+        "d3-scale": "^4.0.2",
+        "d3-shape": "^3.2.0",
+        "d3-time": "^3.1.0",
+        "d3-time-format": "^4.1.0",
+        "react-error-boundary": "^6.1.1",
+        "ts-toolbelt": "^9.6.0"
+    },
+    "devDependencies": {
+        "@babel/cli": "^7.28.6",
+        "@babel/core": "^7.29.0",
+        "@babel/eslint-parser": "^7.28.6",
+        "@babel/plugin-transform-runtime": "^7.29.0",
+        "@babel/preset-env": "^7.29.2",
+        "@babel/preset-react": "^7.28.5",
+        "@babel/preset-typescript": "^7.28.5",
+        "@rollup/plugin-babel": "^7.0.0",
+        "@rollup/plugin-commonjs": "^29.0.2",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-replace": "^6.0.3",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@svgr/rollup": "^8.1.0",
+        "@testing-library/react": "^16.3.2",
+        "@types/d3-array": "^3.2.2",
+        "@types/d3-delaunay": "^6.0.4",
+        "@types/d3-scale": "^4.0.9",
+        "@types/d3-shape": "^3.1.8",
+        "@types/d3-time-format": "^4.0.3",
+        "@types/jest": "^30.0.0",
+        "@types/raf": "^3.4.3",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "@typescript-eslint/eslint-plugin": "^8.58.2",
+        "@typescript-eslint/parser": "^8.58.2",
+        "babel-jest": "^30.3.0",
+        "babel-plugin-const-enum": "^1.2.0",
+        "babel-plugin-transform-async-to-promises": "^0.8.18",
+        "cross-env": "^10.1.0",
+        "eslint": "^9.x",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-import": "^2.31.0",
+        "eslint-plugin-jsx-a11y": "^6.10.2",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-promise": "^7.2.1",
+        "eslint-plugin-react": "^7.37.5",
+        "eslint-plugin-react-hooks": "^7.1.1",
+        "is-ci-cli": "^2.2.0",
+        "jest": "^30.3.0",
+        "prettier": "3.8.3",
+        "react": "^19.2.5",
+        "react-dom": "^19.2.5",
+        "replace": "^1.2.2",
+        "rimraf": "^6.0.1",
+        "rollup": "^4.60.2",
+        "rollup-plugin-jscc": "^2.0.0",
+        "rollup-plugin-peer-deps-external": "^2.2.4",
+        "rollup-plugin-prettier": "^4.1.2",
+        "rollup-plugin-size": "^0.2.2",
+        "rollup-plugin-visualizer": "^6.0.5",
+        "typescript": "^6.0.3"
+    },
+    "release": {
+        "branches": [
+            "main",
+            {
+                "name": "beta",
+                "prerelease": true
+            }
+        ]
+    },
+    "resolutions": {
+        "d3-scale/d3-interpolate/d3-color": "^3.1.0"
+    }
 }
