@@ -1,9 +1,5 @@
 ![React Charts Header](https://github.com/TanStack/react-charts/raw/main/media/repo-dark.png)
 
-
-# ⚠️ No Longer Maintained ⚠️
-This project is no longer actively maintained. No further updates, bug fixes, or support will be provided.
-
 ----
 
 Simple, immersive and interactive charts for React
