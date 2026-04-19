@@ -4,7 +4,7 @@
     "isolatedModules": true,
     "jsx": "react",
     "lib": ["ESNext", "dom"],
-    "target": "es5",
+    "target": "es2020",
     "noEmit": true,
     "noImplicitAny": true,
     "noImplicitReturns": false,
