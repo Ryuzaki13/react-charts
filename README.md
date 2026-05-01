@@ -4,31 +4,6 @@
 
 Simple, immersive and interactive charts for React
 
-<a href="https://twitter.com/intent/tweet?button_hashtag=TanStack" target="\_parent">
-  <img alt="#TanStack" src="https://img.shields.io/twitter/url?color=%2308a0e9&label=%23TanStack&style=social&url=https%3A%2F%2Ftwitter.com%2Fintent%2Ftweet%3Fbutton_hashtag%3DTanStack">
-</a>
-<a href="https://npmjs.com/package/react-charts" target="\_parent">
-  <img alt="" src="https://img.shields.io/npm/dm/react-charts.svg" />
-</a>
-<a href="https://bundlephobia.com/result?p=react-charts" target="\_parent">
-  <img alt="" src="https://badgen.net/bundlephobia/minzip/react-charts" />
-</a>
-<a href="https://discord.com/invite/WrRKjPJ" target="\_parent">
-  <img alt="" src="https://img.shields.io/badge/Discord-TanStack-%235865F2" />
-</a>
-<a href="https://github.com/react-charts/react-charts" target="\_parent">
-  <img alt="" src="https://img.shields.io/github/stars/react-charts/react-charts.svg?style=social&label=Star" />
-</a>
-<a href="https://twitter.com/tannerlinsley" target="\_parent">
-  <img alt="" src="https://img.shields.io/twitter/follow/tannerlinsley.svg?style=social&label=Follow" />
-</a>
-
-<br />
-<br />
-
-Enjoy this library? Try the entire [TanStack](https://tanstack.com)! [React Table](https://github.com/tannerlinsley/react-table), [React Query](https://github.com/tannerlinsley/react-query), [React Form](https://github.com/tannerlinsley/react-form)
-
-## Visit [react-charts.tanstack.com](https://react-charts.tanstack.com) for docs, guides, API and more!
 
 ## Quick Features
 
@@ -44,11 +19,7 @@ Enjoy this library? Try the entire [TanStack](https://tanstack.com)! [React Tabl
 - Declarative
 - Mutliple Axes
 
-### [Become a Sponsor!](https://github.com/sponsors/tannerlinsley/)
-
 # Contributors ✨
-
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -64,6 +35,3 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
 
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!
-
-<!-- Force 2 -->
