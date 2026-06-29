@@ -10,8 +10,13 @@ import useMeasure from "./AxisLinear.useMeasure";
 const defaultAxisLabelOffset = 36;
 const axisLabelEllipsis = "...";
 
+function getElementRect(el: Element) {
+    return el.getBoundingClientRect();
+}
+
 export default function AxisLinearComp<TDatum>(axis: Axis<TDatum>) {
     const [showRotated, setShowRotated] = React.useState(false);
+    const [axisLabelTickOffset, setAxisLabelTickOffset] = React.useState(0);
     const { getOptions, gridDimensions, width, height } = useChartContext<TDatum>();
 
     const { dark, showDebugAxes } = getOptions();
@@ -23,7 +28,31 @@ export default function AxisLinearComp<TDatum>(axis: Axis<TDatum>) {
         elRef,
         gridDimensions,
         showRotated,
+        axisLabelTickOffset,
         setShowRotated,
+    });
+
+    useIsomorphicLayoutEffect(() => {
+        if (!axis.isVertical || !elRef.current) {
+            setAxisLabelTickOffset(current => (current === 0 ? current : 0));
+            return;
+        }
+
+        const axisEl = elRef.current.querySelector(`.Axis-Group.inner .domainAndTicks`);
+        const domainEl = elRef.current.querySelector(`.Axis-Group.inner .domain`);
+
+        if (!axisEl || !domainEl) {
+            return;
+        }
+
+        const axisRect = getElementRect(axisEl);
+        const domainRect = getElementRect(domainEl);
+        const nextOffset =
+            axis.position === "left"
+                ? Math.round(Math.max(0, domainRect.left - axisRect.left))
+                : Math.round(Math.max(0, axisRect.right - domainRect.right));
+
+        setAxisLabelTickOffset(current => (current === nextOffset ? current : nextOffset));
     });
 
     const renderAxis = (isOuter: boolean) => {
@@ -219,6 +248,7 @@ export default function AxisLinearComp<TDatum>(axis: Axis<TDatum>) {
                             rangeStart={rangeStart}
                             rangeEnd={rangeEnd}
                             resolvedWidth={resolvedWidth}
+                            tickLabelOffset={axisLabelTickOffset}
                         />
                     ) : null}
                 </g>
@@ -252,12 +282,14 @@ function AxisLabel<TDatum>({
     rangeStart,
     rangeEnd,
     resolvedWidth,
+    tickLabelOffset,
 }: {
     axis: Axis<TDatum>;
     dark: boolean | undefined;
     rangeStart: number;
     rangeEnd: number;
     resolvedWidth: number;
+    tickLabelOffset: number;
 }) {
     const labelStyle = React.useMemo<React.CSSProperties>(
         () => ({
@@ -280,8 +312,9 @@ function AxisLabel<TDatum>({
 
     const offset = axis.labelOffset ?? defaultAxisLabelOffset;
     const y = rangeStart + (rangeEnd - rangeStart) / 2;
-    const x = axis.position === "left" ? -offset : resolvedWidth + offset;
-    const rotation = axis.position === "left" ? -90 : 90;
+    const resolvedOffset = tickLabelOffset + offset;
+    const x = axis.position === "left" ? -resolvedOffset : resolvedWidth + resolvedOffset;
+    const rotation = -90;
 
     return (
         <AxisLabelText
@@ -310,9 +343,20 @@ function AxisLabelText({
     x: number;
     y: number;
 }) {
-    const labelText = React.useMemo(() => getTextFromReactNode(label), [label]);
-    const [displayText, setDisplayText] = React.useState(labelText);
+    const [measuredLabel, setMeasuredLabel] = React.useState<{
+        label: React.ReactNode;
+        maxLength: number;
+        style: React.CSSProperties;
+        text: string;
+    } | null>(null);
     const textRef = React.useRef<SVGTextElement>(null);
+    const measuredText =
+        measuredLabel &&
+        measuredLabel.label === label &&
+        measuredLabel.maxLength === maxLength &&
+        measuredLabel.style === style
+            ? measuredLabel.text
+            : null;
 
     useIsomorphicLayoutEffect(() => {
         const textEl = textRef.current;
@@ -321,20 +365,34 @@ function AxisLabelText({
             return;
         }
 
+        const labelText = normalizeAxisLabelText(textEl.textContent ?? "");
         const nextText = getEllipsizedText(textEl, labelText, maxLength);
 
         textEl.textContent = nextText;
-        setDisplayText(current => (current === nextText ? current : nextText));
-    }, [labelText, maxLength, style]);
+        setMeasuredLabel(current => {
+            if (
+                current &&
+                current.label === label &&
+                current.maxLength === maxLength &&
+                current.style === style &&
+                current.text === nextText
+            ) {
+                return current;
+            }
 
-    if (!labelText) {
-        return null;
-    }
+            return {
+                label,
+                maxLength,
+                style,
+                text: nextText,
+            };
+        });
+    }, [label, maxLength, style]);
 
     return (
         <text
             ref={textRef}
-            aria-label={labelText}
+            aria-label={measuredText ?? undefined}
             className="axisLabel"
             dominantBaseline="central"
             textAnchor="middle"
@@ -343,7 +401,7 @@ function AxisLabelText({
             y={y}
             style={style}
         >
-            {displayText}
+            {measuredText ?? label}
         </text>
     );
 }
@@ -392,30 +450,6 @@ function getEllipsizedText(textEl: SVGTextElement, text: string, maxLength: numb
     } catch {
         return text;
     }
-}
-
-function getTextFromReactNode(node: React.ReactNode): string {
-    return normalizeAxisLabelText(readTextFromReactNode(node));
-}
-
-function readTextFromReactNode(node: React.ReactNode): string {
-    if (node === null || typeof node === "undefined" || typeof node === "boolean") {
-        return "";
-    }
-
-    if (typeof node === "string" || typeof node === "number" || typeof node === "bigint") {
-        return `${node}`;
-    }
-
-    if (Array.isArray(node)) {
-        return node.map(readTextFromReactNode).join("");
-    }
-
-    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
-        return readTextFromReactNode(node.props.children);
-    }
-
-    return "";
 }
 
 function normalizeAxisLabelText(text: string) {

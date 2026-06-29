@@ -43,12 +43,14 @@ export default function useMeasure<TDatum>({
     elRef,
     gridDimensions,
     showRotated,
+    axisLabelTickOffset,
     setShowRotated,
 }: {
     axis: Axis<TDatum>;
     elRef: MutableRefObject<SVGGElement | null>;
     gridDimensions: GridDimensions;
     showRotated: boolean;
+    axisLabelTickOffset: number;
     setShowRotated: (value: boolean) => void;
 }) {
     const { axisDimensionsState } = useChartContext<TDatum>();
@@ -215,6 +217,7 @@ export default function useMeasure<TDatum>({
         axis.label,
         axis.labelOffset,
         axis.labelStyle,
+        axisLabelTickOffset,
         axis.outerScale,
         axis.scale,
         measureDimensions,
