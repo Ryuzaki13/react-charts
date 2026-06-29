@@ -201,6 +201,9 @@ export type AxisOptionsBase = {
     primaryAxisId?: string;
     elementType?: "line" | "area" | "bar" | "bubble";
     showDatumElements?: boolean | "onFocus";
+    label?: React.ReactNode;
+    labelOffset?: number;
+    labelStyle?: CSSProperties;
     curve?: CurveFactory;
     invert?: boolean;
     position?: Position;

@@ -1,10 +1,14 @@
 import React from "react";
 
+import useIsomorphicLayoutEffect from "../hooks/useIsomorphicLayoutEffect";
 import { Axis, AxisLinear } from "../types";
 import { translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
 
 import useMeasure from "./AxisLinear.useMeasure";
+
+const defaultAxisLabelOffset = 36;
+const axisLabelEllipsis = "...";
 
 export default function AxisLinearComp<TDatum>(axis: Axis<TDatum>) {
     const [showRotated, setShowRotated] = React.useState(false);
@@ -208,6 +212,15 @@ export default function AxisLinearComp<TDatum>(axis: Axis<TDatum>) {
                             );
                         })}
                     </g>
+                    {!isOuter ? (
+                        <AxisLabel
+                            axis={axis}
+                            dark={dark}
+                            rangeStart={rangeStart}
+                            rangeEnd={rangeEnd}
+                            resolvedWidth={resolvedWidth}
+                        />
+                    ) : null}
                 </g>
             </g>
         );
@@ -231,4 +244,180 @@ function getTickPx<TDatum>(scale: Axis<TDatum>["scale"], value: any) {
     }
 
     return px;
+}
+
+function AxisLabel<TDatum>({
+    axis,
+    dark,
+    rangeStart,
+    rangeEnd,
+    resolvedWidth,
+}: {
+    axis: Axis<TDatum>;
+    dark: boolean | undefined;
+    rangeStart: number;
+    rangeEnd: number;
+    resolvedWidth: number;
+}) {
+    const labelStyle = React.useMemo<React.CSSProperties>(
+        () => ({
+            fontSize: 11,
+            fill: dark ? "rgba(255,255,255, .8)" : "rgba(0,0,0, .8)",
+            ...axis.labelStyle,
+            whiteSpace: "nowrap",
+        }),
+        [axis.labelStyle, dark]
+    );
+
+    if (
+        axis.label === null ||
+        typeof axis.label === "undefined" ||
+        typeof axis.label === "boolean" ||
+        (axis.position !== "left" && axis.position !== "right")
+    ) {
+        return null;
+    }
+
+    const offset = axis.labelOffset ?? defaultAxisLabelOffset;
+    const y = rangeStart + (rangeEnd - rangeStart) / 2;
+    const x = axis.position === "left" ? -offset : resolvedWidth + offset;
+    const rotation = axis.position === "left" ? -90 : 90;
+
+    return (
+        <AxisLabelText
+            label={axis.label}
+            maxLength={Math.abs(rangeEnd - rangeStart)}
+            x={x}
+            y={y}
+            rotation={rotation}
+            style={labelStyle}
+        />
+    );
+}
+
+function AxisLabelText({
+    label,
+    maxLength,
+    rotation,
+    style,
+    x,
+    y,
+}: {
+    label: React.ReactNode;
+    maxLength: number;
+    rotation: number;
+    style: React.CSSProperties;
+    x: number;
+    y: number;
+}) {
+    const labelText = React.useMemo(() => getTextFromReactNode(label), [label]);
+    const [displayText, setDisplayText] = React.useState(labelText);
+    const textRef = React.useRef<SVGTextElement>(null);
+
+    useIsomorphicLayoutEffect(() => {
+        const textEl = textRef.current;
+
+        if (!textEl) {
+            return;
+        }
+
+        const nextText = getEllipsizedText(textEl, labelText, maxLength);
+
+        textEl.textContent = nextText;
+        setDisplayText(current => (current === nextText ? current : nextText));
+    }, [labelText, maxLength, style]);
+
+    if (!labelText) {
+        return null;
+    }
+
+    return (
+        <text
+            ref={textRef}
+            aria-label={labelText}
+            className="axisLabel"
+            dominantBaseline="central"
+            textAnchor="middle"
+            transform={`rotate(${rotation}, ${x}, ${y})`}
+            x={x}
+            y={y}
+            style={style}
+        >
+            {displayText}
+        </text>
+    );
+}
+
+function getEllipsizedText(textEl: SVGTextElement, text: string, maxLength: number) {
+    if (!Number.isFinite(maxLength) || maxLength <= 0) {
+        return "";
+    }
+
+    if (typeof textEl.getComputedTextLength !== "function") {
+        return text;
+    }
+
+    try {
+        textEl.textContent = text;
+
+        if (textEl.getComputedTextLength() <= maxLength) {
+            return text;
+        }
+
+        textEl.textContent = axisLabelEllipsis;
+
+        if (textEl.getComputedTextLength() > maxLength) {
+            return "";
+        }
+
+        let low = 0;
+        let high = text.length;
+        let best = axisLabelEllipsis;
+
+        while (low <= high) {
+            const middle = Math.floor((low + high) / 2);
+            const candidate = `${text.slice(0, middle).trimEnd()}${axisLabelEllipsis}`;
+
+            textEl.textContent = candidate;
+
+            if (textEl.getComputedTextLength() <= maxLength) {
+                best = candidate;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
+        }
+
+        return best;
+    } catch {
+        return text;
+    }
+}
+
+function getTextFromReactNode(node: React.ReactNode): string {
+    return normalizeAxisLabelText(readTextFromReactNode(node));
+}
+
+function readTextFromReactNode(node: React.ReactNode): string {
+    if (node === null || typeof node === "undefined" || typeof node === "boolean") {
+        return "";
+    }
+
+    if (typeof node === "string" || typeof node === "number" || typeof node === "bigint") {
+        return `${node}`;
+    }
+
+    if (Array.isArray(node)) {
+        return node.map(readTextFromReactNode).join("");
+    }
+
+    if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+        return readTextFromReactNode(node.props.children);
+    }
+
+    return "";
+}
+
+function normalizeAxisLabelText(text: string) {
+    return text.replace(/\s+/g, " ").trim();
 }

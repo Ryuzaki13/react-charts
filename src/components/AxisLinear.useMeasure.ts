@@ -18,10 +18,31 @@ const getElBox = (el: Element) => {
     };
 };
 
+type ElementBox = ReturnType<typeof getElBox>;
+
+const mergeElBoxes = (boxes: ElementBox[]): ElementBox => {
+    const top = Math.min(...boxes.map(box => box.top));
+    const right = Math.max(...boxes.map(box => box.right));
+    const bottom = Math.max(...boxes.map(box => box.bottom));
+    const left = Math.min(...boxes.map(box => box.left));
+
+    return {
+        top,
+        right,
+        bottom,
+        left,
+        width: right - left,
+        height: bottom - top,
+        x: left,
+        y: top,
+    };
+};
+
 export default function useMeasure<TDatum>({
     axis,
     elRef,
     gridDimensions,
+    showRotated,
     setShowRotated,
 }: {
     axis: Axis<TDatum>;
@@ -124,6 +145,7 @@ export default function useMeasure<TDatum>({
 
         const axisEl = currentEl.querySelector(`.Axis-Group.inner .domainAndTicks`);
         const domainEl = currentEl.querySelector(`.Axis-Group.inner .domain`);
+        const labelEl = currentEl.querySelector(`.Axis-Group.inner .axisLabel`);
 
         if (!axisEl || !domainEl) {
             return;
@@ -131,30 +153,32 @@ export default function useMeasure<TDatum>({
 
         const axisDims = getElBox(axisEl);
         const domainDims = getElBox(domainEl);
+        const labelDims = labelEl ? getElBox(labelEl) : undefined;
 
         if (!axisDims || !domainDims) {
             return;
         }
 
+        const contentDims = labelDims ? mergeElBoxes([axisDims, labelDims]) : axisDims;
+
         // Axis overflow measurements
         if (!axis.isVertical) {
-            newDimensions.paddingLeft = Math.round(Math.max(0, domainDims.left - axisDims?.left));
+            newDimensions.paddingLeft = Math.round(Math.max(0, domainDims.left - contentDims.left));
 
-            newDimensions.paddingRight = Math.round(Math.max(0, axisDims?.right - domainDims.right));
+            newDimensions.paddingRight = Math.round(Math.max(0, contentDims.right - domainDims.right));
 
-            newDimensions.height = axisDims?.height;
+            newDimensions.height = contentDims.height;
         } else {
-            newDimensions.paddingTop = Math.round(Math.max(0, domainDims.top - axisDims?.top));
+            newDimensions.paddingTop = Math.round(Math.max(0, domainDims.top - contentDims.top));
 
-            newDimensions.paddingBottom = Math.round(Math.max(0, axisDims?.bottom - domainDims.bottom));
+            newDimensions.paddingBottom = Math.round(Math.max(0, contentDims.bottom - domainDims.bottom));
 
-            newDimensions.width = axisDims?.width;
+            newDimensions.width = contentDims.width;
         }
 
         // Only update the axisDimensions if something has changed
         if (
             // !isLooping &&
-            !axisDimensions ||
             !axisDimension ||
             Object.keys(newDimensions).some(key => {
                 // @ts-ignore
@@ -169,16 +193,34 @@ export default function useMeasure<TDatum>({
                 },
             }));
         }
-    }, [axis.id, axis.isVertical, axis.position, axisDimension, axisDimensions, elRef, setAxisDimensions]);
+    }, [
+        axis.id,
+        axis.isVertical,
+        axis.position,
+        axisDimension,
+        elRef,
+        setAxisDimensions,
+    ]);
 
     // Measure after if needed
     useIsomorphicLayoutEffect(() => {
         // setTimeout(() => {
-        window.requestAnimationFrame(() => {
+        const frame = window.requestAnimationFrame(() => {
             measureRotation();
             measureDimensions();
         });
-    }, [measureRotation]);
+
+        return () => window.cancelAnimationFrame(frame);
+    }, [
+        axis.label,
+        axis.labelOffset,
+        axis.labelStyle,
+        axis.outerScale,
+        axis.scale,
+        measureDimensions,
+        measureRotation,
+        showRotated,
+    ]);
 
     // useIsomorphicLayoutEffect(() => {
     //   // setTimeout(() => {
