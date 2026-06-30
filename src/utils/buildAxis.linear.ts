@@ -267,11 +267,15 @@ function buildTimeAxis<TDatum>(
     const cursorFormat = (value: Date) =>
         options.formatters?.cursor?.(value, { ...formatters, cursor: undefined }) ?? scaleFormat(value);
 
+    const datumLabelFormat = (value: Date) =>
+        options.formatters?.datumLabel?.(value, { ...formatters, datumLabel: undefined }) ?? scaleFormat(value);
+
     Object.assign(formatters, {
         default: defaultFormat,
         scale: scaleFormat,
         tooltip: tooltipFormat,
         cursor: cursorFormat,
+        datumLabel: datumLabelFormat,
     });
 
     return {
@@ -405,11 +409,15 @@ function buildLinearAxis<TDatum>(
     const cursorFormat = (value: number) =>
         options.formatters?.cursor?.(value, { ...formatters, cursor: undefined }) ?? tooltipFormat(value);
 
+    const datumLabelFormat = (value: number) =>
+        options.formatters?.datumLabel?.(value, { ...formatters, datumLabel: undefined }) ?? scaleFormat(value);
+
     Object.assign(formatters, {
         default: defaultFormat,
         scale: scaleFormat,
         tooltip: tooltipFormat,
         cursor: cursorFormat,
+        datumLabel: datumLabelFormat,
     });
 
     return {
@@ -483,11 +491,15 @@ function buildBandAxis<TDatum>(
     const cursorFormat = (value: number) =>
         options.formatters?.cursor?.(value, { ...formatters, cursor: undefined }) ?? tooltipFormat(value);
 
+    const datumLabelFormat = (value: number) =>
+        options.formatters?.datumLabel?.(value, { ...formatters, datumLabel: undefined }) ?? scaleFormat(value);
+
     Object.assign(formatters, {
         default: defaultFormat,
         scale: scaleFormat,
         tooltip: tooltipFormat,
         cursor: cursorFormat,
+        datumLabel: datumLabelFormat,
     });
 
     return {

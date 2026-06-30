@@ -201,6 +201,8 @@ export type AxisOptionsBase = {
     primaryAxisId?: string;
     elementType?: "line" | "area" | "bar" | "bubble";
     showDatumElements?: boolean | "onFocus";
+    showDatumLabels?: boolean | "onFocus";
+    datumLabelStyle?: CSSProperties;
     label?: React.ReactNode;
     labelOffset?: number;
     labelStyle?: CSSProperties;
@@ -241,6 +243,7 @@ export type AxisTimeOptions<TDatum> = AxisOptionsBase & {
         scale?: (value: Date, formatters: AxisTimeOptions<TDatum>["formatters"]) => string;
         tooltip?: (value: Date, formatters: AxisTimeOptions<TDatum>["formatters"]) => React.ReactNode;
         cursor?: (value: Date, formatters: AxisTimeOptions<TDatum>["formatters"]) => React.ReactNode;
+        datumLabel?: (value: Date, formatters: AxisTimeOptions<TDatum>["formatters"]) => React.ReactNode;
     };
 };
 
@@ -256,6 +259,7 @@ export type AxisLinearOptions<TDatum> = AxisOptionsBase & {
         scale?: (value: number, formatters: AxisLinearOptions<TDatum>["formatters"]) => string;
         tooltip?: (value: number, formatters: AxisLinearOptions<TDatum>["formatters"]) => React.ReactNode;
         cursor?: (value: number, formatters: AxisLinearOptions<TDatum>["formatters"]) => React.ReactNode;
+        datumLabel?: (value: number, formatters: AxisLinearOptions<TDatum>["formatters"]) => React.ReactNode;
     };
 };
 
@@ -267,6 +271,7 @@ export type AxisBandOptions<TDatum> = AxisOptionsBase & {
         scale?: (value: any, formatters: AxisBandOptions<TDatum>["formatters"]) => string;
         tooltip?: (value: React.ReactNode, formatters: AxisBandOptions<TDatum>["formatters"]) => string;
         cursor?: (value: React.ReactNode, formatters: AxisBandOptions<TDatum>["formatters"]) => string;
+        datumLabel?: (value: React.ReactNode, formatters: AxisBandOptions<TDatum>["formatters"]) => React.ReactNode;
     };
 };
 
@@ -311,6 +316,7 @@ export type AxisTime<TDatum> = Omit<AxisBase & ResolvedAxisOptions<AxisTimeOptio
         scale: (value: Date) => string;
         tooltip: (value: Date) => React.ReactNode;
         cursor: (value: Date) => React.ReactNode;
+        datumLabel: (value: Date) => React.ReactNode;
     };
 };
 
@@ -327,6 +333,7 @@ export type AxisLinear<TDatum> = Omit<AxisBase & ResolvedAxisOptions<AxisLinearO
         scale: (value: number) => string;
         tooltip: (value: number) => React.ReactNode;
         cursor: (value: number) => React.ReactNode;
+        datumLabel: (value: number) => React.ReactNode;
     };
 };
 
@@ -343,6 +350,7 @@ export type AxisBand<TDatum> = Omit<AxisBase & ResolvedAxisOptions<AxisBandOptio
         scale: (value: any) => string;
         tooltip: (value: React.ReactNode) => string;
         cursor: (value: React.ReactNode) => string;
+        datumLabel: (value: React.ReactNode) => React.ReactNode;
     };
 };
 

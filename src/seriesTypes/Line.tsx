@@ -58,6 +58,7 @@ export default function Line<TDatum>({
 
                 const showDatumElements =
                     secondaryAxis.showDatumElements ?? (secondaryAxis.elementType === "bubble" || "onFocus");
+                const showDatumLabels = secondaryAxis.showDatumLabels ?? false;
 
                 return (
                     <g key={`lines-${i}`}>
@@ -87,31 +88,58 @@ export default function Line<TDatum>({
                             const dataStyle = getDatumStatusStyle(datum, focusedDatum);
 
                             const radius = showDatumElements === "onFocus" ? (datum === focusedDatum ? 4 : 0) : 2;
+                            const x = getX(datum, primaryAxis, secondaryAxis);
+                            const y = getY(datum, primaryAxis, secondaryAxis);
 
                             const show =
                                 showDatumElements === "onFocus"
                                     ? datum === focusedDatum
                                     : (secondaryAxis.showDatumElements ?? secondaryAxis.elementType === "bubble");
+                            const showLabel = showDatumLabels === "onFocus" ? datum === focusedDatum : showDatumLabels;
+                            const labelValue = showLabel ? getDatumLabel(datum, secondaryAxis) : null;
 
                             return (
-                                <circle
-                                    key={i}
-                                    ref={el => {
-                                        datum.element = el;
-                                    }}
-                                    cx={getX(datum, primaryAxis, secondaryAxis) || 0}
-                                    cy={getY(datum, primaryAxis, secondaryAxis) || 0}
-                                    style={{
-                                        // @ts-ignore
-                                        r: radius,
-                                        transition: "all .3s ease-out",
-                                        ...style,
-                                        ...style.circle,
-                                        ...dataStyle,
-                                        ...dataStyle.circle,
-                                        ...(!show ? { opacity: 0 } : {}),
-                                    }}
-                                />
+                                <React.Fragment key={i}>
+                                    <circle
+                                        ref={el => {
+                                            datum.element = el;
+                                        }}
+                                        cx={x || 0}
+                                        cy={y || 0}
+                                        style={{
+                                            // @ts-ignore
+                                            r: radius,
+                                            transition: "all .3s ease-out",
+                                            ...style,
+                                            ...style.circle,
+                                            ...dataStyle,
+                                            ...dataStyle.circle,
+                                            ...(!show ? { opacity: 0 } : {}),
+                                        }}
+                                    />
+                                    {showLabel && [x, y].every(isDefined) ? (
+                                        <text
+                                            x={x}
+                                            y={y - 8}
+                                            style={{
+                                                fill:
+                                                    dataStyle.fill ??
+                                                    dataStyle.stroke ??
+                                                    style.fill ??
+                                                    style.stroke ??
+                                                    style.color ??
+                                                    "currentColor",
+                                                fontSize: 10,
+                                                pointerEvents: "none",
+                                                textAnchor: "middle",
+                                                transition: "all .3s ease-out",
+                                                ...secondaryAxis.datumLabelStyle,
+                                            }}
+                                        >
+                                            {labelValue}
+                                        </text>
+                                    ) : null}
+                                </React.Fragment>
                             );
                         })}
                     </g>
@@ -153,6 +181,12 @@ function getSecondaryStart<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDa
     }
 
     return secondaryAxis.scale(0) ?? NaN;
+}
+
+function getDatumLabel<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDatum>) {
+    return (secondaryAxis.formatters as { datumLabel: (value: any) => React.ReactNode }).datumLabel(
+        datum.secondaryValue
+    );
 }
 
 function clampPxToAxis<TDatum>(px: number, axis: Axis<TDatum>) {
