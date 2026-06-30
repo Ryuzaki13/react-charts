@@ -7,6 +7,10 @@ import useChartContext from "../utils/chartContext";
 //
 import { monotoneX } from "../utils/curveMonotone";
 
+const defaultDatumLabelFontSize = 10;
+const datumLabelOffset = 8;
+const datumLabelEdgePadding = 2;
+
 export default function Line<TDatum>({
     primaryAxis,
     secondaryAxis,
@@ -58,7 +62,6 @@ export default function Line<TDatum>({
 
                 const showDatumElements =
                     secondaryAxis.showDatumElements ?? (secondaryAxis.elementType === "bubble" || "onFocus");
-                const showDatumLabels = secondaryAxis.showDatumLabels ?? false;
 
                 return (
                     <g key={`lines-${i}`}>
@@ -95,51 +98,105 @@ export default function Line<TDatum>({
                                 showDatumElements === "onFocus"
                                     ? datum === focusedDatum
                                     : (secondaryAxis.showDatumElements ?? secondaryAxis.elementType === "bubble");
-                            const showLabel = showDatumLabels === "onFocus" ? datum === focusedDatum : showDatumLabels;
-                            const labelValue = showLabel ? getDatumLabel(datum, secondaryAxis) : null;
 
                             return (
-                                <React.Fragment key={i}>
-                                    <circle
-                                        ref={el => {
-                                            datum.element = el;
-                                        }}
-                                        cx={x || 0}
-                                        cy={y || 0}
-                                        style={{
-                                            // @ts-ignore
-                                            r: radius,
-                                            transition: "all .3s ease-out",
-                                            ...style,
-                                            ...style.circle,
-                                            ...dataStyle,
-                                            ...dataStyle.circle,
-                                            ...(!show ? { opacity: 0 } : {}),
-                                        }}
-                                    />
-                                    {showLabel && [x, y].every(isDefined) ? (
-                                        <text
-                                            x={x}
-                                            y={y - 8}
-                                            style={{
-                                                fill:
-                                                    dataStyle.fill ??
-                                                    dataStyle.stroke ??
-                                                    style.fill ??
-                                                    style.stroke ??
-                                                    style.color ??
-                                                    "currentColor",
-                                                fontSize: 10,
-                                                pointerEvents: "none",
-                                                textAnchor: "middle",
-                                                transition: "all .3s ease-out",
-                                                ...secondaryAxis.datumLabelStyle,
-                                            }}
-                                        >
-                                            {labelValue}
-                                        </text>
-                                    ) : null}
-                                </React.Fragment>
+                                <circle
+                                    key={i}
+                                    ref={el => {
+                                        datum.element = el;
+                                    }}
+                                    cx={x || 0}
+                                    cy={y || 0}
+                                    style={{
+                                        // @ts-ignore
+                                        r: radius,
+                                        transition: "all .3s ease-out",
+                                        ...style,
+                                        ...style.circle,
+                                        ...dataStyle,
+                                        ...dataStyle.circle,
+                                        ...(!show ? { opacity: 0 } : {}),
+                                    }}
+                                />
+                            );
+                        })}
+                    </g>
+                );
+            })}
+        </g>
+    );
+}
+
+export function LineDatumLabels<TDatum>({
+    primaryAxis,
+    secondaryAxis,
+    series: allSeries,
+}: {
+    primaryAxis: Axis<TDatum>;
+    secondaryAxis: Axis<TDatum>;
+    series: Series<TDatum>[];
+}) {
+    const { getSeriesStatusStyle, getDatumStatusStyle, focusedDatumState, gridDimensions } = useChartContext<TDatum>();
+
+    const [focusedDatum] = focusedDatumState;
+    const showDatumLabels = secondaryAxis.showDatumLabels ?? false;
+
+    if (!showDatumLabels) {
+        return null;
+    }
+
+    return (
+        <g
+            style={{
+                pointerEvents: "none",
+                transform: translate(gridDimensions.left, gridDimensions.top),
+            }}
+        >
+            {allSeries.map((series, seriesIndex) => {
+                const style = getSeriesStatusStyle(series, focusedDatum);
+
+                return (
+                    <g key={`line-labels-${seriesIndex}`}>
+                        {series.datums.map((datum, datumIndex) => {
+                            const showLabel = showDatumLabels === "onFocus" ? datum === focusedDatum : showDatumLabels;
+
+                            if (!showLabel) {
+                                return null;
+                            }
+
+                            const x = getX(datum, primaryAxis, secondaryAxis);
+                            const y = getY(datum, primaryAxis, secondaryAxis);
+
+                            if (![x, y].every(isDefined)) {
+                                return null;
+                            }
+
+                            const dataStyle = getDatumStatusStyle(datum, focusedDatum);
+                            const layout = getDatumLabelLayout(x, y, gridDimensions, secondaryAxis.datumLabelStyle);
+
+                            return (
+                                <text
+                                    key={`line-label-${datumIndex}`}
+                                    x={layout.x}
+                                    y={layout.y}
+                                    style={{
+                                        fill:
+                                            dataStyle.fill ??
+                                            dataStyle.stroke ??
+                                            style.fill ??
+                                            style.stroke ??
+                                            style.color ??
+                                            "currentColor",
+                                        dominantBaseline: layout.dominantBaseline,
+                                        fontSize: defaultDatumLabelFontSize,
+                                        pointerEvents: "none",
+                                        textAnchor: layout.textAnchor,
+                                        transition: "all .3s ease-out",
+                                        ...secondaryAxis.datumLabelStyle,
+                                    }}
+                                >
+                                    {getDatumLabel(datum, secondaryAxis)}
+                                </text>
                             );
                         })}
                     </g>
@@ -187,6 +244,62 @@ function getDatumLabel<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDatum>
     return (secondaryAxis.formatters as { datumLabel: (value: any) => React.ReactNode }).datumLabel(
         datum.secondaryValue
     );
+}
+
+function getDatumLabelLayout<TDatum>(
+    x: number,
+    y: number,
+    gridDimensions: { width: number; height: number },
+    labelStyle: Axis<TDatum>["datumLabelStyle"]
+) {
+    const fontSize = getDatumLabelFontSize(labelStyle);
+    const minX = datumLabelEdgePadding;
+    const maxX = Math.max(minX, gridDimensions.width - datumLabelEdgePadding);
+    const labelX = Math.max(minX, Math.min(x, maxX));
+    const horizontalAnchorPadding = fontSize * 2;
+    const textAnchor =
+        x <= horizontalAnchorPadding
+            ? "start"
+            : x >= gridDimensions.width - horizontalAnchorPadding
+              ? "end"
+              : "middle";
+
+    const aboveY = y - datumLabelOffset;
+    const minBaselineY = fontSize + datumLabelEdgePadding;
+
+    if (aboveY < minBaselineY) {
+        const maxHangingY = Math.max(datumLabelEdgePadding, gridDimensions.height - fontSize - datumLabelEdgePadding);
+        const belowY = Math.max(datumLabelEdgePadding, Math.min(y + datumLabelOffset, maxHangingY));
+
+        return {
+            x: labelX,
+            y: belowY,
+            dominantBaseline: "hanging",
+            textAnchor,
+        } as const;
+    }
+
+    return {
+        x: labelX,
+        y: Math.max(minBaselineY, Math.min(aboveY, gridDimensions.height - datumLabelEdgePadding)),
+        dominantBaseline: "auto",
+        textAnchor,
+    } as const;
+}
+
+function getDatumLabelFontSize(labelStyle: React.CSSProperties | undefined) {
+    const fontSize = labelStyle?.fontSize;
+
+    if (typeof fontSize === "number") {
+        return fontSize;
+    }
+
+    if (typeof fontSize === "string") {
+        const parsed = parseFloat(fontSize);
+        return Number.isNaN(parsed) ? defaultDatumLabelFontSize : parsed;
+    }
+
+    return defaultDatumLabelFontSize;
 }
 
 function clampPxToAxis<TDatum>(px: number, axis: Axis<TDatum>) {

@@ -4,7 +4,7 @@ import React, { ComponentPropsWithoutRef } from "react";
 import useGetLatest from "../hooks/useGetLatest";
 import useIsomorphicLayoutEffect from "../hooks/useIsomorphicLayoutEffect";
 import Bar, { getPrimary } from "../seriesTypes/Bar";
-import Line from "../seriesTypes/Line";
+import Line, { LineDatumLabels } from "../seriesTypes/Line";
 //
 import {
 	Axis,
@@ -602,6 +602,33 @@ function ChartInner<TDatum>({
         });
     }, [getSeriesInfo]);
 
+    const datumLabelsEl = React.useMemo(() => {
+        const { primaryAxis, secondaryAxes, seriesByAxisId } = getSeriesInfo();
+
+        return seriesByAxisId.map(([axisId, series]) => {
+            const secondaryAxis = secondaryAxes.find(d => d.id === axisId);
+
+            if (
+                !secondaryAxis ||
+                primaryAxis.isInvalid ||
+                secondaryAxis.isInvalid ||
+                !secondaryAxis.showDatumLabels ||
+                secondaryAxis.elementType === "bar"
+            ) {
+                return null;
+            }
+
+            return (
+                <LineDatumLabels
+                    key={`datum-labels-${axisId ?? "__default__"}`}
+                    primaryAxis={primaryAxis}
+                    secondaryAxis={secondaryAxis}
+                    series={series}
+                />
+            );
+        });
+    }, [getSeriesInfo]);
+
     return (
         <ChartContextProvider value={useGetLatest(contextValue)}>
             <div>
@@ -634,6 +661,7 @@ function ChartInner<TDatum>({
                         {seriesEl}
                     </g>
                     <Voronoi />
+                    <g className="DatumLabels">{datumLabelsEl}</g>
                     {options.renderSVG?.() ?? null}
                 </svg>
                 <Cursors />
