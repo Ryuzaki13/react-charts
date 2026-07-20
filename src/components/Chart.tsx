@@ -5,6 +5,7 @@ import useGetLatest from "../hooks/useGetLatest";
 import useIsomorphicLayoutEffect from "../hooks/useIsomorphicLayoutEffect";
 import Bar, { getPrimary } from "../seriesTypes/Bar";
 import Line, { LineDatumLabels } from "../seriesTypes/Line";
+import { updateDatumLabelVisibility } from "../seriesTypes/datumLabelCollision";
 //
 import {
 	Axis,
@@ -271,6 +272,7 @@ function ChartInner<TDatum>({
     //
 
     const svgRef = React.useRef<SVGSVGElement>(null!);
+    const datumLabelsRef = React.useRef<SVGGElement>(null);
     const getOptions = useGetLatest({ ...options, tooltip: tooltipOptions });
 
     const axisDimensionsState = React.useState<AxisDimensions>({
@@ -602,6 +604,17 @@ function ChartInner<TDatum>({
         });
     }, [getSeriesInfo]);
 
+    const focusedDatumAffectsDatumLabels =
+        focusedDatum &&
+        secondaryAxes.some(
+            axis =>
+                axis.id === focusedDatum.secondaryAxisId &&
+                axis.showDatumLabels === "onFocus" &&
+                axis.elementType !== "bar"
+        )
+            ? focusedDatum
+            : null;
+
     const datumLabelsEl = React.useMemo(() => {
         const { primaryAxis, secondaryAxes, seriesByAxisId } = getSeriesInfo();
 
@@ -621,13 +634,39 @@ function ChartInner<TDatum>({
             return (
                 <LineDatumLabels
                     key={`datum-labels-${axisId ?? "__default__"}`}
+                    focusedDatum={focusedDatumAffectsDatumLabels}
                     primaryAxis={primaryAxis}
                     secondaryAxis={secondaryAxis}
                     series={series}
                 />
             );
         });
-    }, [getSeriesInfo]);
+    }, [focusedDatumAffectsDatumLabels, getSeriesInfo]);
+
+    useIsomorphicLayoutEffect(() => {
+        updateDatumLabelVisibility(datumLabelsRef.current, primaryAxis.isVertical ? "vertical" : "horizontal");
+    }, [focusedDatumAffectsDatumLabels, primaryAxis, secondaryAxes, seriesByAxisId]);
+
+    React.useEffect(() => {
+        const container = datumLabelsRef.current;
+
+        if (!container) {
+            return;
+        }
+
+        const updateVisibility = () => {
+            updateDatumLabelVisibility(container, primaryAxis.isVertical ? "vertical" : "horizontal");
+        };
+        const observer = new MutationObserver(updateVisibility);
+
+        observer.observe(container, { childList: true, characterData: true, subtree: true });
+        document.fonts?.addEventListener("loadingdone", updateVisibility);
+
+        return () => {
+            observer.disconnect();
+            document.fonts?.removeEventListener("loadingdone", updateVisibility);
+        };
+    }, [primaryAxis.isVertical]);
 
     return (
         <ChartContextProvider value={useGetLatest(contextValue)}>
@@ -661,7 +700,9 @@ function ChartInner<TDatum>({
                         {seriesEl}
                     </g>
                     <Voronoi />
-                    <g className="DatumLabels">{datumLabelsEl}</g>
+                    <g ref={datumLabelsRef} className="DatumLabels">
+                        {datumLabelsEl}
+                    </g>
                     {options.renderSVG?.() ?? null}
                 </svg>
                 <Cursors />

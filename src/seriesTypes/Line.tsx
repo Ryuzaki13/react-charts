@@ -128,18 +128,21 @@ export default function Line<TDatum>({
 }
 
 export function LineDatumLabels<TDatum>({
+    focusedDatum: focusedDatumFromProps,
     primaryAxis,
     secondaryAxis,
     series: allSeries,
 }: {
+    focusedDatum: Datum<TDatum> | null;
     primaryAxis: Axis<TDatum>;
     secondaryAxis: Axis<TDatum>;
     series: Series<TDatum>[];
 }) {
     const { getSeriesStatusStyle, getDatumStatusStyle, focusedDatumState, gridDimensions } = useChartContext<TDatum>();
 
-    const [focusedDatum] = focusedDatumState;
+    const [focusedDatumFromContext] = focusedDatumState;
     const showDatumLabels = secondaryAxis.showDatumLabels ?? false;
+    const focusedDatum = showDatumLabels === "onFocus" ? focusedDatumFromProps : focusedDatumFromContext;
 
     if (!showDatumLabels) {
         return null;
@@ -177,6 +180,14 @@ export function LineDatumLabels<TDatum>({
                             return (
                                 <text
                                     key={`line-label-${datumIndex}`}
+                                    data-datum-label=""
+                                    data-datum-label-display={secondaryAxis.datumLabelStyle?.display}
+                                    data-datum-label-key={JSON.stringify([
+                                        secondaryAxis.id ?? null,
+                                        series.id,
+                                        datum.index,
+                                    ])}
+                                    data-datum-label-primary-position={primaryAxis.isVertical ? y : x}
                                     x={layout.x}
                                     y={layout.y}
                                     style={{
