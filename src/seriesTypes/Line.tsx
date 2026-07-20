@@ -6,6 +6,7 @@ import { isDefined, translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
 //
 import { monotoneX } from "../utils/curveMonotone";
+import { datumElementTransition } from "./datumElementTransition";
 
 const defaultDatumLabelFontSize = 10;
 const datumLabelOffset = 8;
@@ -94,6 +95,10 @@ export default function Line<TDatum>({
                             const x = getX(datum, primaryAxis, secondaryAxis);
                             const y = getY(datum, primaryAxis, secondaryAxis);
 
+                            if (![x, y].every(isDefined)) {
+                                return null;
+                            }
+
                             const show =
                                 showDatumElements === "onFocus"
                                     ? datum === focusedDatum
@@ -105,12 +110,12 @@ export default function Line<TDatum>({
                                     ref={el => {
                                         datum.element = el;
                                     }}
-                                    cx={x || 0}
-                                    cy={y || 0}
+                                    cx={x}
+                                    cy={y}
                                     style={{
                                         // @ts-ignore
                                         r: radius,
-                                        transition: "all .3s ease-out",
+                                        transition: datumElementTransition,
                                         ...style,
                                         ...style.circle,
                                         ...dataStyle,
