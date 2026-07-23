@@ -6,6 +6,7 @@ import { getPrimaryGroupLength, getPrimaryLength } from "../seriesTypes/Bar";
 import { Axis, Datum } from "../types";
 import { translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
+import { shouldUseBarInteractionPosition } from "../utils/seriesElementType";
 
 export default function Voronoi<TDatum>() {
     const { getOptions, focusedDatumState, isInteractingState } = useChartContext<TDatum>();
@@ -43,12 +44,12 @@ export default function Voronoi<TDatum>() {
 }
 
 function PrimaryVoronoi<TDatum>({ handleFocus }: { handleFocus: (datum: Datum<TDatum> | null) => void }) {
-    const { primaryAxis, secondaryAxes, getOptions, gridDimensions, datumsByInteractionGroup } =
+    const { primaryAxis, secondaryAxes, series, getOptions, gridDimensions, datumsByInteractionGroup } =
         useChartContext<TDatum>();
 
     const stackedVoronoi = secondaryAxes.length === 1 && secondaryAxes[0].stacked;
 
-    const useBarPx = secondaryAxes.every(d => d.elementType === "bar" && !d.stacked);
+    const useBarPx = shouldUseBarInteractionPosition(series, secondaryAxes);
 
     return React.useMemo(() => {
         let preColumns = Array.from(datumsByInteractionGroup.entries())
@@ -259,7 +260,7 @@ function SingleVoronoi<TDatum>({ handleFocus }: { handleFocus: (datum: Datum<TDa
 
     const voronoiData: { x: number; y: number; datum: Datum<TDatum> }[] = [];
 
-    const useBarPx = secondaryAxes.every(d => d.elementType === "bar" && !d.stacked);
+    const useBarPx = shouldUseBarInteractionPosition(series, secondaryAxes);
 
     series.forEach(serie => {
         serie.datums
@@ -366,7 +367,7 @@ function getPrimary<TDatum>(
 ): number {
     let primary = primaryAxis.scale(datum.primaryValue) ?? NaN;
 
-    if (useBarPx && secondaryAxis.elementType === "bar") {
+    if (useBarPx && datum.elementType === "bar") {
         if (!secondaryAxis.stacked) {
             primary += primaryAxis.seriesBandScale!(datum.seriesIndex) ?? NaN;
             primary += getPrimaryLength(datum, primaryAxis, secondaryAxis) / 2;

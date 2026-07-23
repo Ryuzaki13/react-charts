@@ -24,6 +24,11 @@ import {
 import { getDatumStatus, getSeriesStatus, materializeStyles } from "../utils/Utils";
 import buildAxisLinear from "../utils/buildAxis.linear";
 import { ChartContextProvider } from "../utils/chartContext";
+import {
+    groupSeriesByElementType,
+    resolveSeriesElementType,
+    shouldUseBarInteractionPosition,
+} from "../utils/seriesElementType";
 import AxisLinear from "./AxisLinear";
 // import Brush from './Brush'
 import Cursors from "./Cursors";
@@ -356,6 +361,7 @@ function ChartInner<TDatum>({
             const seriesId = originalSeries.id ?? seriesIndex + "";
             const seriesLabel = originalSeries.label ?? `Series ${seriesIndex + 1}`;
             const secondaryAxisId = originalSeries.secondaryAxisId;
+            const elementType = resolveSeriesElementType(originalSeries, secondaryAxesOptions);
             const originalDatums = originalSeries.data;
             const datums = [];
 
@@ -372,6 +378,7 @@ function ChartInner<TDatum>({
                     seriesIndexPerAxis,
                     seriesId,
                     seriesLabel,
+                    elementType,
                     secondaryAxisId,
                     index: datumIndex,
                     originalDatum,
@@ -383,6 +390,7 @@ function ChartInner<TDatum>({
                 index: seriesIndex,
                 id: seriesId,
                 label: seriesLabel,
+                elementType,
                 indexPerAxis: seriesIndexPerAxis,
                 secondaryAxisId,
                 datums,
@@ -390,7 +398,7 @@ function ChartInner<TDatum>({
         }
 
         return series;
-    }, [options.data]);
+    }, [options.data, secondaryAxesOptions]);
 
     let allDatums = React.useMemo(() => {
         return series.map(s => s.datums).flat(2);
@@ -414,13 +422,13 @@ function ChartInner<TDatum>({
         const datumsByInteractionGroup = new Map<any, Datum<TDatum>[]>();
         const datumsByTooltipGroup = new Map<any, Datum<TDatum>[]>();
 
-        const allBarAndNotStacked = secondaryAxes.every(d => d.elementType === "bar" && !d.stacked);
+        const allBarAndNotStacked = shouldUseBarInteractionPosition(series, secondaryAxes);
 
         let getInteractionPrimary = (datum: Datum<TDatum>) => {
             if (allBarAndNotStacked) {
                 const secondaryAxis = secondaryAxes.find(d => d.id === datum.secondaryAxisId)!;
 
-                if (secondaryAxis.elementType === "bar" && !secondaryAxis.stacked) {
+                if (datum.elementType === "bar" && !secondaryAxis.stacked) {
                     return getPrimary(datum, primaryAxis, secondaryAxis);
                 }
             }
@@ -475,7 +483,15 @@ function ChartInner<TDatum>({
         });
 
         return [datumsByInteractionGroup, datumsByTooltipGroup];
-    }, [isInteracting, allDatums, options.interactionMode, primaryAxis, secondaryAxes, tooltipOptions.groupingMode]);
+    }, [
+        isInteracting,
+        allDatums,
+        options.interactionMode,
+        primaryAxis,
+        secondaryAxes,
+        series,
+        tooltipOptions.groupingMode,
+    ]);
 
     const getSeriesStatusStyle = React.useCallback(
         (series: Series<TDatum>, focusedDatum: Datum<TDatum> | null) => {
@@ -578,28 +594,27 @@ function ChartInner<TDatum>({
                 return null;
             }
 
-            const { elementType } = secondaryAxis;
-            const Component = (() => {
-                if (elementType === "line" || elementType === "bubble" || elementType === "area") {
-                    return Line;
-                }
-                if (elementType === "bar") {
-                    return Bar;
-                }
-                throw new Error("Invalid elementType");
-            })();
-
             if (primaryAxis.isInvalid || secondaryAxis.isInvalid) {
                 return null;
             }
 
-            return (
-                <Component
-                    key={axisId ?? "__default__"}
-                    primaryAxis={primaryAxis}
-                    secondaryAxis={secondaryAxis}
-                    series={series}
-                />
+            return groupSeriesByElementType(series).map(([elementType, elementSeries]) =>
+                elementType === "bar" ? (
+                    <Bar
+                        key={`${axisId ?? "__default__"}-${elementType}`}
+                        primaryAxis={primaryAxis}
+                        secondaryAxis={secondaryAxis}
+                        series={elementSeries}
+                    />
+                ) : (
+                    <Line
+                        key={`${axisId ?? "__default__"}-${elementType}`}
+                        elementType={elementType}
+                        primaryAxis={primaryAxis}
+                        secondaryAxis={secondaryAxis}
+                        series={elementSeries}
+                    />
+                )
             );
         });
     }, [getSeriesInfo]);
@@ -610,7 +625,7 @@ function ChartInner<TDatum>({
             axis =>
                 axis.id === focusedDatum.secondaryAxisId &&
                 axis.showDatumLabels === "onFocus" &&
-                axis.elementType !== "bar"
+                focusedDatum.elementType !== "bar"
         )
             ? focusedDatum
             : null;
@@ -621,25 +636,21 @@ function ChartInner<TDatum>({
         return seriesByAxisId.map(([axisId, series]) => {
             const secondaryAxis = secondaryAxes.find(d => d.id === axisId);
 
-            if (
-                !secondaryAxis ||
-                primaryAxis.isInvalid ||
-                secondaryAxis.isInvalid ||
-                !secondaryAxis.showDatumLabels ||
-                secondaryAxis.elementType === "bar"
-            ) {
+            if (!secondaryAxis || primaryAxis.isInvalid || secondaryAxis.isInvalid || !secondaryAxis.showDatumLabels) {
                 return null;
             }
 
-            return (
-                <LineDatumLabels
-                    key={`datum-labels-${axisId ?? "__default__"}`}
-                    focusedDatum={focusedDatumAffectsDatumLabels}
-                    primaryAxis={primaryAxis}
-                    secondaryAxis={secondaryAxis}
-                    series={series}
-                />
-            );
+            return groupSeriesByElementType(series)
+                .filter(([elementType]) => elementType !== "bar")
+                .map(([elementType, elementSeries]) => (
+                    <LineDatumLabels
+                        key={`datum-labels-${axisId ?? "__default__"}-${elementType}`}
+                        focusedDatum={focusedDatumAffectsDatumLabels}
+                        primaryAxis={primaryAxis}
+                        secondaryAxis={secondaryAxis}
+                        series={elementSeries}
+                    />
+                ));
         });
     }, [focusedDatumAffectsDatumLabels, getSeriesInfo]);
 

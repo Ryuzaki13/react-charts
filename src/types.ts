@@ -156,6 +156,8 @@ export type AnchorMode =
 
 export type Side = "left" | "right" | "top" | "bottom";
 
+export type SeriesElementType = "line" | "area" | "bar" | "bubble";
+
 type PointerBase = {
     x: number;
     y: number;
@@ -199,7 +201,7 @@ export type AxisDimensions = {
 
 export type AxisOptionsBase = {
     primaryAxisId?: string;
-    elementType?: "line" | "area" | "bar" | "bubble";
+    elementType?: SeriesElementType;
     showDatumElements?: boolean | "onFocus";
     showDatumLabels?: boolean | "onFocus";
     datumLabelStyle?: CSSProperties;
@@ -361,6 +363,7 @@ export type UserSerie<TDatum> = {
     id?: string;
     label?: string;
     color?: string;
+    elementType?: SeriesElementType;
     primaryAxisId?: string;
     secondaryAxisId?: string;
 };
@@ -373,6 +376,7 @@ export type Series<TDatum> = {
     indexPerAxis: number;
     id: string;
     label: string;
+    elementType: SeriesElementType;
     secondaryAxisId?: string;
     datums: Datum<TDatum>[];
     style?: CSSProperties;
@@ -383,6 +387,7 @@ export type Datum<TDatum> = {
     seriesIndex: number;
     seriesId: string;
     seriesLabel: string;
+    elementType: SeriesElementType;
     index: number;
     originalDatum: TDatum;
     secondaryAxisId?: string;

@@ -35,6 +35,7 @@ import {
 	Series,
 	StackDatum,
 } from "../types";
+import { createBarSeriesIndexBySeriesIndex } from "./seriesElementType";
 
 function defaultAxisOptions<TDatum>(options: BuildAxisOptions<TDatum>): ResolvedAxisOptions<AxisOptions<TDatum>> {
     return {
@@ -614,14 +615,15 @@ function buildSeriesBandScale<TDatum>(
     primaryBandScale: ScaleBand<number>,
     series: Series<TDatum>[]
 ) {
-    const bandDomain = d3Range(series.length);
+    const barIndexBySeriesIndex = createBarSeriesIndexBySeriesIndex(series);
+    const bandDomain = d3Range(barIndexBySeriesIndex.size);
 
     const seriesBandScale = scaleBand(bandDomain, [0, primaryBandScale.bandwidth()])
         .round(false)
         .paddingOuter(options.outerSeriesBandPadding ?? (options.outerBandPadding ? options.outerBandPadding / 2 : 0))
         .paddingInner(options.innerSeriesBandPadding ?? (options.innerBandPadding ? options.innerBandPadding / 2 : 0));
 
-    const scale = (seriesIndex: number) => seriesBandScale(series.find(d => d.index === seriesIndex)!?.indexPerAxis);
+    const scale = (seriesIndex: number) => seriesBandScale(barIndexBySeriesIndex.get(seriesIndex) ?? NaN);
 
     return Object.assign(scale, seriesBandScale);
 }

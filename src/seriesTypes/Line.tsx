@@ -1,7 +1,7 @@
 import { area, line } from "d3-shape";
 import React from "react";
 
-import { Axis, Datum, Series } from "../types";
+import { Axis, Datum, Series, SeriesElementType } from "../types";
 import { isDefined, translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
 //
@@ -13,10 +13,12 @@ const datumLabelOffset = 8;
 const datumLabelEdgePadding = 2;
 
 export default function Line<TDatum>({
+    elementType,
     primaryAxis,
     secondaryAxis,
     series: allSeries,
 }: {
+    elementType: Exclude<SeriesElementType, "bar">;
     primaryAxis: Axis<TDatum>;
     secondaryAxis: Axis<TDatum>;
     series: Series<TDatum>[];
@@ -38,7 +40,7 @@ export default function Line<TDatum>({
 
                 let areaPath: null | string = null;
 
-                if (secondaryAxis.elementType === "area") {
+                if (elementType === "area") {
                     const _x = (datum: Datum<TDatum>) => getPrimary(datum, primaryAxis);
                     const _y1 = (datum: Datum<TDatum>) =>
                         clampPxToAxis(getSecondaryStart(datum, secondaryAxis), secondaryAxis);
@@ -57,12 +59,12 @@ export default function Line<TDatum>({
                 lineFn.defined(datum => [_x(datum), _y(datum)].every(isDefined));
 
                 const linePath =
-                    secondaryAxis.elementType === "area" || secondaryAxis.elementType === "line"
+                    elementType === "area" || elementType === "line"
                         ? (lineFn(series.datums) ?? undefined)
                         : undefined;
 
                 const showDatumElements =
-                    secondaryAxis.showDatumElements ?? (secondaryAxis.elementType === "bubble" || "onFocus");
+                    secondaryAxis.showDatumElements ?? (elementType === "bubble" || "onFocus");
 
                 return (
                     <g key={`lines-${i}`}>
@@ -102,7 +104,7 @@ export default function Line<TDatum>({
                             const show =
                                 showDatumElements === "onFocus"
                                     ? datum === focusedDatum
-                                    : (secondaryAxis.showDatumElements ?? secondaryAxis.elementType === "bubble");
+                                    : (secondaryAxis.showDatumElements ?? elementType === "bubble");
 
                             return (
                                 <circle
