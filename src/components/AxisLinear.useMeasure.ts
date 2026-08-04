@@ -195,14 +195,7 @@ export default function useMeasure<TDatum>({
                 },
             }));
         }
-    }, [
-        axis.id,
-        axis.isVertical,
-        axis.position,
-        axisDimension,
-        elRef,
-        setAxisDimensions,
-    ]);
+    }, [axis.id, axis.isVertical, axis.position, axisDimension, elRef, setAxisDimensions]);
 
     // Measure after if needed
     useIsomorphicLayoutEffect(() => {
@@ -217,6 +210,7 @@ export default function useMeasure<TDatum>({
         axis.label,
         axis.labelOffset,
         axis.labelStyle,
+        axis.tickLabelStyle,
         axisLabelTickOffset,
         axis.outerScale,
         axis.scale,

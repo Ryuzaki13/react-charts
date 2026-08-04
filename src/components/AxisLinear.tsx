@@ -10,6 +10,21 @@ import useMeasure from "./AxisLinear.useMeasure";
 const defaultAxisLabelOffset = 36;
 const axisLabelEllipsis = "...";
 
+export function resolveAxisTickLabelStyle(
+    dark: boolean | undefined,
+    dominantBaseline: React.CSSProperties["dominantBaseline"],
+    textAnchor: React.CSSProperties["textAnchor"],
+    tickLabelStyle: React.CSSProperties | undefined
+): React.CSSProperties {
+    return {
+        fontSize: 10,
+        fill: dark ? "rgba(255,255,255, .7)" : "rgba(0,0,0, .7)",
+        dominantBaseline,
+        textAnchor,
+        ...tickLabelStyle,
+    };
+}
+
 function getElementRect(el: Element) {
     return el.getBoundingClientRect();
 }
@@ -196,24 +211,24 @@ export default function AxisLinearComp<TDatum>(axis: Axis<TDatum>) {
                                     ) : null}
                                     <text
                                         className="tickLabel"
-                                        style={{
-                                            fontSize: 10,
-                                            fill: dark ? "rgba(255,255,255, .7)" : "rgba(0,0,0, .7)",
-                                            dominantBaseline: isRotated
+                                        style={resolveAxisTickLabelStyle(
+                                            dark,
+                                            isRotated
                                                 ? "central"
                                                 : axis.position === "bottom"
                                                   ? "hanging"
                                                   : axis.position === "top"
                                                     ? "alphabetic"
                                                     : "central",
-                                            textAnchor: isRotated
+                                            isRotated
                                                 ? "end"
                                                 : axis.position === "right"
                                                   ? "start"
                                                   : axis.position === "left"
                                                     ? "end"
                                                     : "middle",
-                                        }}
+                                            axis.tickLabelStyle
+                                        )}
                                         transform={`translate(${tickLabelX}, ${tickLabelY}) rotate(${
                                             isRotated ? (axis.position === "top" ? 60 : -60) : 0
                                         })`}

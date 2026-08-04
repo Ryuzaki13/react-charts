@@ -20,6 +20,42 @@ const getLineBackgroundColor = (dark: boolean, bandWidth: number) =>
 
 const getBackgroundColor = (dark?: boolean) => (dark ? "rgba(255,255,255,.9)" : "rgba(0, 26, 39, 0.9)");
 
+export function resolveCursorLineStyle(
+    width: number,
+    height: number,
+    background: string,
+    lineStyle: React.CSSProperties | undefined
+): React.CSSProperties {
+    return {
+        width: `${width}px`,
+        height: `${height}px`,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        background,
+        ...lineStyle,
+    };
+}
+
+export function resolveCursorLabelStyle(
+    dark: boolean | undefined,
+    alignPctX: number,
+    alignPctY: number,
+    labelStyle: React.CSSProperties | undefined
+): React.CSSProperties {
+    return {
+        padding: "5px",
+        fontSize: "10px",
+        background: getBackgroundColor(dark),
+        color: getBackgroundColor(!dark),
+        borderRadius: "3px",
+        position: "relative",
+        transform: `translate3d(${alignPctX}%, ${alignPctY}%, 0)`,
+        whiteSpace: "nowrap",
+        ...labelStyle,
+    };
+}
+
 function defaultCursor(options: CursorOptions): ResolvedCursorOptions {
     return {
         ...options,
@@ -265,14 +301,12 @@ function Cursor<TDatum>(props: { primary?: boolean; options: ResolvedCursorOptio
                   {props.options.showLine ? (
                       <div
                           ref={lineRef}
-                          style={{
-                              width: `${lineWidth}px`,
-                              height: `${lineHeight}px`,
-                              position: "absolute",
-                              top: 0,
-                              left: 0,
-                              background: getLineBackgroundColor(getOptions().dark ?? false, bandWidth),
-                          }}
+                          style={resolveCursorLineStyle(
+                              lineWidth,
+                              lineHeight,
+                              getLineBackgroundColor(getOptions().dark ?? false, bandWidth),
+                              props.options.lineStyle
+                          )}
                       />
                   ) : null}
                   {/* Render the cursor bubble */}
@@ -287,16 +321,12 @@ function Cursor<TDatum>(props: { primary?: boolean; options: ResolvedCursorOptio
                       >
                           {/* Render the cursor label */}
                           <div
-                              style={{
-                                  padding: "5px",
-                                  fontSize: "10px",
-                                  background: getBackgroundColor(getOptions().dark),
-                                  color: getBackgroundColor(!getOptions().dark),
-                                  borderRadius: "3px",
-                                  position: "relative",
-                                  transform: `translate3d(${alignPctX}%, ${alignPctY}%, 0)`,
-                                  whiteSpace: "nowrap",
-                              }}
+                              style={resolveCursorLabelStyle(
+                                  getOptions().dark,
+                                  alignPctX,
+                                  alignPctY,
+                                  props.options.labelStyle
+                              )}
                           >
                               {formattedValue}
                           </div>

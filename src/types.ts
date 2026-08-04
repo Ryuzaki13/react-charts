@@ -213,6 +213,7 @@ export type AxisOptionsBase = {
     position?: Position;
     minTickPaddingForRotation?: number;
     tickLabelRotationDeg?: number;
+    tickLabelStyle?: CSSProperties;
     tickCount?: number;
     shouldNice?: boolean;
     innerBandPadding?: number;
@@ -426,6 +427,8 @@ export type CursorOptions = {
     show?: boolean;
     showLine?: boolean;
     showLabel?: boolean;
+    lineStyle?: CSSProperties;
+    labelStyle?: CSSProperties;
     onChange?: (value: any) => void;
 };
 
