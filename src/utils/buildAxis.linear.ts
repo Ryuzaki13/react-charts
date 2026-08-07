@@ -3,37 +3,37 @@ import { scaleBand, ScaleBand, scaleLinear, ScaleLinear, scaleLog, scaleTime, Sc
 import { stack, stackOffsetNone } from "d3-shape";
 
 import {
-	timeDay,
-	timeHour,
-	timeMinute,
-	timeMonth,
-	timeSecond,
-	timeYear,
-	utcDay,
-	utcHour,
-	utcMinute,
-	utcMonth,
-	utcSecond,
-	utcYear,
+    timeDay,
+    timeHour,
+    timeMinute,
+    timeMonth,
+    timeSecond,
+    timeYear,
+    utcDay,
+    utcHour,
+    utcMinute,
+    utcMonth,
+    utcSecond,
+    utcYear,
 } from "d3-time";
 
 import { timeFormat, utcFormat } from "d3-time-format";
 
 import {
-	Axis,
-	AxisBand,
-	AxisBandOptions,
-	AxisLinear,
-	AxisLinearOptions,
-	AxisOptions,
-	AxisTime,
-	AxisTimeOptions,
-	BuildAxisOptions,
-	Datum,
-	GridDimensions,
-	ResolvedAxisOptions,
-	Series,
-	StackDatum,
+    Axis,
+    AxisBand,
+    AxisBandOptions,
+    AxisLinear,
+    AxisLinearOptions,
+    AxisOptions,
+    AxisTime,
+    AxisTimeOptions,
+    BuildAxisOptions,
+    Datum,
+    GridDimensions,
+    ResolvedAxisOptions,
+    Series,
+    StackDatum,
 } from "../types";
 import { createBarSeriesIndexBySeriesIndex } from "./seriesElementType";
 
@@ -567,38 +567,26 @@ function buildPrimaryBandScale<TDatum>(
     // Find the two closest points along axis
     // Do not allow the band to be smaller than single pixel of the output range
 
-    let impliedBandWidth: number = Math.max(...range);
-    const bandRange: number = Math.max(...range);
+    const bandRange = Math.abs(range[1] - range[0]);
 
-    (() => {
-        for (let i = 0; i < series.length; i++) {
-            const serie = series[i];
+    const positions = series
+        .filter(serie => serie.elementType === "bar")
+        .flatMap(serie => serie.datums)
+        .map(datum => scale(datum.primaryValue ?? NaN))
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
 
-            for (let j = 0; j < serie.datums.length; j++) {
-                const d1 = serie.datums[j];
-                const one = scale(d1.primaryValue ?? NaN);
+    let impliedBandWidth = bandRange;
 
-                for (let k = 0; k < serie.datums.length; k++) {
-                    const d2 = serie.datums[k];
-                    const two = scale(d2.primaryValue ?? NaN);
+    for (let i = 0; i < positions.length; i++) {
+        const diff = positions[i] - positions[i - 1];
 
-                    if (one === two) {
-                        continue;
-                    }
-
-                    const diff = Math.abs(Math.max(one, two) - Math.min(one, two));
-
-                    if (diff < impliedBandWidth) {
-                        impliedBandWidth = Math.max(diff, bandRange);
-
-                        if (impliedBandWidth === bandRange) {
-                            return;
-                        }
-                    }
-                }
-            }
+        if (diff > 0) {
+            impliedBandWidth = Math.min(impliedBandWidth, diff);
         }
-    })();
+    }
+
+    impliedBandWidth = Math.min(impliedBandWidth, 1);
 
     const bandDomain = d3Range(bandRange / impliedBandWidth);
 
