@@ -89,3 +89,40 @@ export function shouldUseBarInteractionPosition<TDatum>(
 ): boolean {
     return series.length > 0 && series.every(item => item.elementType === "bar");
 }
+
+/**
+ * Определяет необходимость расширить continuous primary range под крайние bar.
+ * Явное значение оси имеет приоритет, иначе наличие хотя бы одной bar-серии
+ * включает padding автоматически, в том числе в mixed line/bar графике.
+ */
+export function resolvePadBandRange<TDatum>(padBandRange: boolean | undefined, series: Series<TDatum>[]): boolean {
+    return padBandRange ?? series.some(item => item.elementType === "bar");
+}
+
+/** Ограничивает фактическую ширину bar теми же правилами, которые использует renderer. */
+export function resolveRenderedBarWidth(
+    allocatedBandWidth: number,
+    minBandSize: number | undefined,
+    maxBandSize: number | undefined
+): number {
+    const allocatedWidth = Math.max(allocatedBandWidth, 0);
+    const minWidth = Math.max(minBandSize ?? 1, 0);
+    const maxWidth = Math.max(maxBandSize ?? Number.POSITIVE_INFINITY, 0);
+
+    return Math.min(Math.max(allocatedWidth, minWidth), maxWidth);
+}
+
+/**
+ * Переводит требуемый краевой отступ в единицы continuous-domain так, чтобы
+ * после расширения исходные крайние значения оказались на заданном расстоянии.
+ */
+export function resolveContinuousRangeDomainPadding(
+    domainLength: number,
+    availableLength: number,
+    requiredPadding: number
+): number {
+    const safePadding = Math.min(Math.max(requiredPadding, 0), Math.max(availableLength / 2 - 0.5, 0));
+    const availableDataLength = availableLength - safePadding * 2;
+
+    return domainLength > 0 && availableDataLength > 0 ? (domainLength * safePadding) / availableDataLength : 0;
+}

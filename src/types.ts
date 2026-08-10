@@ -247,6 +247,11 @@ export type AxisTimeOptions<TDatum> = AxisOptionsBase & {
     max?: Date;
     hardMin?: Date;
     hardMax?: Date;
+    /**
+     * Расширяет time-domain на фактическую половину крайней bar-группы с учётом
+     * series padding и ограничений minBandSize/maxBandSize.
+     * По умолчанию включается автоматически, если график содержит bar-серии.
+     */
     padBandRange?: boolean;
     formatters?: {
         scale?: (value: Date, formatters: AxisTimeOptions<TDatum>["formatters"]) => string;

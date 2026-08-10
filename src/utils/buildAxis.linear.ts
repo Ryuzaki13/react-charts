@@ -35,7 +35,13 @@ import {
     Series,
     StackDatum,
 } from "../types";
-import { createBarGroupIndexBySeriesIndex, getClosestBarPositionDistance } from "./seriesElementType";
+import {
+    createBarGroupIndexBySeriesIndex,
+    getClosestBarPositionDistance,
+    resolveContinuousRangeDomainPadding,
+    resolvePadBandRange,
+    resolveRenderedBarWidth,
+} from "./seriesElementType";
 
 function defaultAxisOptions<TDatum>(options: BuildAxisOptions<TDatum>): ResolvedAxisOptions<AxisOptions<TDatum>> {
     return {
@@ -255,23 +261,14 @@ function buildTimeAxis<TDatum>(
     // Supplementary band scale
     let primaryBandScale = isPrimary ? buildPrimaryBandScale(options, scale, series) : undefined;
 
-    const primaryBandWidth = primaryBandScale?.bandwidth();
-
-    if (options.padBandRange && primaryBandWidth) {
-        const bandStart = scale.invert(0);
-        const bandEnd = scale.invert(primaryBandWidth);
-        const diff = Math.abs(bandEnd.valueOf() - bandStart.valueOf());
-        const domain = scale.domain();
-        const direction = Math.sign(domain[1].valueOf() - domain[0].valueOf()) || 1;
-
-        scale.domain([
-            new Date(domain[0].valueOf() - (direction * diff) / 2),
-            new Date(domain[1].valueOf() + (direction * diff) / 2),
-        ]);
-
-        // Расширение domain меняет расстояние между time-точками, поэтому ширину
-        // группы нужно вычислить повторно уже по окончательной шкале.
-        primaryBandScale = buildPrimaryBandScale(options, scale, series);
+    if (primaryBandScale && resolvePadBandRange(options.padBandRange, series)) {
+        primaryBandScale = padTimeScaleForBarGroups(
+            options,
+            scale,
+            series,
+            primaryBandScale,
+            barGroupIndexBySeriesIndex
+        );
     }
 
     const outerScale = scale.copy().range(outerRange);
@@ -611,6 +608,86 @@ function buildPrimaryBandScale<TDatum>(
         .paddingInner(options.innerBandPadding ?? 0);
 
     return primaryBandScale;
+}
+
+/**
+ * Расширяет time-domain ровно настолько, чтобы фактически отрисованные крайние
+ * bar не обрезались. Итерация нужна, потому что расширение domain меняет
+ * расстояние между временными точками и, следовательно, геометрию bar-группы.
+ */
+function padTimeScaleForBarGroups<TDatum>(
+    options: ResolvedAxisOptions<AxisTimeOptions<TDatum>>,
+    scale: ScaleTime<number, number, never>,
+    series: Series<TDatum>[],
+    initialPrimaryBandScale: ScaleBand<number>,
+    barGroupIndexBySeriesIndex?: ReadonlyMap<number, number>
+): ScaleBand<number> {
+    const originalDomain = scale.domain();
+    const domainLength = Math.abs(originalDomain[1].valueOf() - originalDomain[0].valueOf());
+    const scaleRange = scale.range();
+    const availableLength = Math.abs(scaleRange[1] - scaleRange[0]);
+    const direction = Math.sign(originalDomain[1].valueOf() - originalDomain[0].valueOf()) || 1;
+    let primaryBandScale = initialPrimaryBandScale;
+
+    if (!domainLength || !availableLength) return primaryBandScale;
+
+    for (let iteration = 0; iteration < 4; iteration++) {
+        const seriesBandScale = buildSeriesBandScale(options, primaryBandScale, series, barGroupIndexBySeriesIndex);
+        const requiredPadding = getRenderedBarGroupHalfLength(options, primaryBandScale, seriesBandScale, series);
+        const domainPadding = resolveContinuousRangeDomainPadding(domainLength, availableLength, requiredPadding);
+        if (!domainPadding) break;
+        scale.domain([
+            new Date(originalDomain[0].valueOf() - direction * domainPadding),
+            new Date(originalDomain[1].valueOf() + direction * domainPadding),
+        ]);
+
+        const nextPrimaryBandScale = buildPrimaryBandScale(options, scale, series);
+        const nextSeriesBandScale = buildSeriesBandScale(
+            options,
+            nextPrimaryBandScale,
+            series,
+            barGroupIndexBySeriesIndex
+        );
+        const nextRequiredPadding = getRenderedBarGroupHalfLength(
+            options,
+            nextPrimaryBandScale,
+            nextSeriesBandScale,
+            series
+        );
+
+        primaryBandScale = nextPrimaryBandScale;
+        if (Math.abs(nextRequiredPadding - requiredPadding) < 0.25) break;
+    }
+
+    return primaryBandScale;
+}
+
+/** Возвращает максимальный вылет видимой bar-группы относительно primary-точки. */
+function getRenderedBarGroupHalfLength<TDatum>(
+    options: ResolvedAxisOptions<AxisTimeOptions<TDatum>>,
+    primaryBandScale: ScaleBand<number>,
+    seriesBandScale: ReturnType<typeof buildSeriesBandScale<TDatum>>,
+    series: Series<TDatum>[]
+): number {
+    const primaryBandWidth = Math.max(primaryBandScale.bandwidth(), 0);
+    const allocatedBarWidth = Math.max(seriesBandScale.bandwidth(), 0);
+    const renderedBarWidth = resolveRenderedBarWidth(allocatedBarWidth, options.minBandSize, options.maxBandSize);
+    let left = Number.POSITIVE_INFINITY;
+    let right = Number.NEGATIVE_INFINITY;
+
+    for (const item of series) {
+        if (item.elementType !== "bar") continue;
+
+        const seriesOffset = seriesBandScale(item.index);
+        if (seriesOffset === undefined || !Number.isFinite(seriesOffset)) continue;
+
+        const barStart = -primaryBandWidth / 2 + seriesOffset + (allocatedBarWidth - renderedBarWidth) / 2;
+        left = Math.min(left, barStart);
+        right = Math.max(right, barStart + renderedBarWidth);
+    }
+
+    if (!Number.isFinite(left) || !Number.isFinite(right)) return 0;
+    return Math.max(Math.abs(left), Math.abs(right));
 }
 
 function buildSeriesBandScale<TDatum>(

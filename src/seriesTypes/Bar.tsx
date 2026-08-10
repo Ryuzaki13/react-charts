@@ -3,6 +3,7 @@ import React from "react";
 import { Axis, AxisBand, Datum, Series } from "../types";
 import { translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
+import { resolveRenderedBarWidth } from "../utils/seriesElementType";
 
 //
 
@@ -98,10 +99,8 @@ export function getPrimaryLength<TDatum>(
     _secondaryAxis: Axis<TDatum>
 ) {
     const bandWidth = Math.max(primaryAxis.seriesBandScale?.bandwidth() ?? 0, 0);
-    const minBandSize = Math.max(primaryAxis.minBandSize ?? 1, 0);
-    const maxBandSize = Math.max(primaryAxis.maxBandSize ?? Number.POSITIVE_INFINITY, 0);
 
-    return Math.min(Math.max(bandWidth, minBandSize), maxBandSize);
+    return resolveRenderedBarWidth(bandWidth, primaryAxis.minBandSize, primaryAxis.maxBandSize);
 }
 
 function getSecondaryLength<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDatum>): number {

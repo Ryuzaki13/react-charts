@@ -3,6 +3,9 @@ import {
     createBarGroupIndexBySeriesIndex,
     getClosestBarPositionDistance,
     groupSeriesByElementType,
+    resolveContinuousRangeDomainPadding,
+    resolvePadBandRange,
+    resolveRenderedBarWidth,
     resolveSeriesElementType,
     shouldUseBarInteractionPosition,
 } from "../seriesElementType";
@@ -117,6 +120,29 @@ describe("series element type", () => {
     it("uses the closest distinct primary position as the continuous band interval", () => {
         expect(getClosestBarPositionDistance([0, 100, 60, 100, Number.NaN], 300)).toBe(40);
         expect(getClosestBarPositionDistance([100, 100], 300)).toBe(300);
+    });
+
+    it("automatically pads a continuous range only when bar series are present", () => {
+        const bar = createSeries(0, "bar");
+        const line = createSeries(1, "line");
+
+        expect(resolvePadBandRange(undefined, [line])).toBe(false);
+        expect(resolvePadBandRange(undefined, [line, bar])).toBe(true);
+        expect(resolvePadBandRange(false, [bar])).toBe(false);
+        expect(resolvePadBandRange(true, [line])).toBe(true);
+    });
+
+    it("uses the rendered bar width when min/max constraints are present", () => {
+        expect(resolveRenderedBarWidth(80, 1, 48)).toBe(48);
+        expect(resolveRenderedBarWidth(0.25, 2, 48)).toBe(2);
+        expect(resolveRenderedBarWidth(24, undefined, undefined)).toBe(24);
+    });
+
+    it("converts a pixel edge inset to an exact continuous-domain extension", () => {
+        const domainPadding = resolveContinuousRangeDomainPadding(100, 800, 40);
+        const finalDomainLength = 100 + domainPadding * 2;
+
+        expect((domainPadding / finalDomainLength) * 800).toBeCloseTo(40);
     });
 
     it("uses shifted interaction positions when every series is a bar", () => {
