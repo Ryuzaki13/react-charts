@@ -25,6 +25,7 @@ import { getDatumStatus, getSeriesStatus, materializeStyles } from "../utils/Uti
 import buildAxisLinear from "../utils/buildAxis.linear";
 import { ChartContextProvider } from "../utils/chartContext";
 import {
+    createBarGroupIndexBySeriesIndex,
     groupSeriesByElementType,
     resolveSeriesElementType,
     shouldUseBarInteractionPosition,
@@ -404,9 +405,23 @@ function ChartInner<TDatum>({
         return series.map(s => s.datums).flat(2);
     }, [series]);
 
+    const barGroupIndexBySeriesIndex = React.useMemo(
+        () => createBarGroupIndexBySeriesIndex(series, secondaryAxesOptions),
+        [secondaryAxesOptions, series]
+    );
+
     const primaryAxis = React.useMemo(() => {
-        return buildAxisLinear<TDatum>(true, primaryAxisOptions, series, allDatums, gridDimensions, width, height);
-    }, [allDatums, gridDimensions, height, primaryAxisOptions, series, width]);
+        return buildAxisLinear<TDatum>(
+            true,
+            primaryAxisOptions,
+            series,
+            allDatums,
+            gridDimensions,
+            width,
+            height,
+            barGroupIndexBySeriesIndex
+        );
+    }, [allDatums, barGroupIndexBySeriesIndex, gridDimensions, height, primaryAxisOptions, series, width]);
 
     const secondaryAxes = React.useMemo(() => {
         return secondaryAxesOptions.map(secondaryAxis => {
@@ -422,13 +437,13 @@ function ChartInner<TDatum>({
         const datumsByInteractionGroup = new Map<any, Datum<TDatum>[]>();
         const datumsByTooltipGroup = new Map<any, Datum<TDatum>[]>();
 
-        const allBarAndNotStacked = shouldUseBarInteractionPosition(series, secondaryAxes);
+        const useBarInteractionPosition = shouldUseBarInteractionPosition(series, secondaryAxes);
 
         let getInteractionPrimary = (datum: Datum<TDatum>) => {
-            if (allBarAndNotStacked) {
+            if (useBarInteractionPosition) {
                 const secondaryAxis = secondaryAxes.find(d => d.id === datum.secondaryAxisId)!;
 
-                if (datum.elementType === "bar" && !secondaryAxis.stacked) {
+                if (datum.elementType === "bar") {
                     return getPrimary(datum, primaryAxis, secondaryAxis);
                 }
             }

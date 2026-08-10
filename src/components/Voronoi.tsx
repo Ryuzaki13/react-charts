@@ -2,7 +2,7 @@ import { Delaunay } from "d3-delaunay";
 import React from "react";
 
 import { line } from "d3-shape";
-import { getPrimaryGroupLength, getPrimaryLength } from "../seriesTypes/Bar";
+import { getPrimary as getBarPrimary, getPrimaryLength } from "../seriesTypes/Bar";
 import { Axis, Datum } from "../types";
 import { translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
@@ -368,12 +368,8 @@ function getPrimary<TDatum>(
     let primary = primaryAxis.scale(datum.primaryValue) ?? NaN;
 
     if (useBarPx && datum.elementType === "bar") {
-        if (!secondaryAxis.stacked) {
-            primary += primaryAxis.seriesBandScale!(datum.seriesIndex) ?? NaN;
-            primary += getPrimaryLength(datum, primaryAxis, secondaryAxis) / 2;
-        } else {
-            primary += getPrimaryGroupLength(datum, primaryAxis) / 2;
-        }
+        primary =
+            getBarPrimary(datum, primaryAxis, secondaryAxis) + getPrimaryLength(datum, primaryAxis, secondaryAxis) / 2;
     }
 
     return primary;

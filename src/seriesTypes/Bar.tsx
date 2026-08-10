@@ -89,26 +89,19 @@ function getHeight<TDatum>(datum: Datum<TDatum>, primaryAxis: Axis<TDatum>, seco
 }
 
 export function getPrimaryGroupLength<TDatum>(_datum: Datum<TDatum>, primaryAxis: Axis<TDatum>) {
-    return Math.max(primaryAxis.primaryBandScale!.bandwidth(), 1);
+    return Math.max(primaryAxis.primaryBandScale?.bandwidth() ?? 0, 0);
 }
 
 export function getPrimaryLength<TDatum>(
     _datum: Datum<TDatum>,
     primaryAxis: Axis<TDatum>,
-    secondaryAxis: Axis<TDatum>
+    _secondaryAxis: Axis<TDatum>
 ) {
-    if (primaryAxis.axisFamily === "band") {
-        const bandWidth = secondaryAxis.stacked
-            ? primaryAxis.scale.bandwidth()
-            : primaryAxis.seriesBandScale.bandwidth();
+    const bandWidth = Math.max(primaryAxis.seriesBandScale?.bandwidth() ?? 0, 0);
+    const minBandSize = Math.max(primaryAxis.minBandSize ?? 1, 0);
+    const maxBandSize = Math.max(primaryAxis.maxBandSize ?? Number.POSITIVE_INFINITY, 0);
 
-        return Math.min(Math.max(bandWidth, primaryAxis.minBandSize ?? 1), primaryAxis.maxBandSize ?? 99999999);
-    }
-
-    return Math.max(
-        secondaryAxis.stacked ? primaryAxis.primaryBandScale!.bandwidth() : primaryAxis.seriesBandScale!.bandwidth(),
-        1
-    );
+    return Math.min(Math.max(bandWidth, minBandSize), maxBandSize);
 }
 
 function getSecondaryLength<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDatum>): number {
@@ -138,9 +131,12 @@ export function getPrimary<TDatum>(
         primary -= getPrimaryGroupLength(datum, primaryAxis) / 2;
     }
 
-    if (!secondaryAxis.stacked) {
-        primary = primary + ((primaryAxis as AxisBand<any>).seriesBandScale(datum.seriesIndex) ?? NaN);
-    }
+    const seriesBandScale = (primaryAxis as AxisBand<any>).seriesBandScale;
+    const seriesOffset = seriesBandScale(datum.seriesIndex) ?? NaN;
+    const allocatedLength = seriesBandScale.bandwidth();
+    const renderedLength = getPrimaryLength(datum, primaryAxis, secondaryAxis);
+
+    primary += seriesOffset + (allocatedLength - renderedLength) / 2;
 
     return primary;
 }

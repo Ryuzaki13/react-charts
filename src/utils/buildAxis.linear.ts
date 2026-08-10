@@ -35,7 +35,7 @@ import {
     Series,
     StackDatum,
 } from "../types";
-import { createBarSeriesIndexBySeriesIndex } from "./seriesElementType";
+import { createBarGroupIndexBySeriesIndex, getClosestBarPositionDistance } from "./seriesElementType";
 
 function defaultAxisOptions<TDatum>(options: BuildAxisOptions<TDatum>): ResolvedAxisOptions<AxisOptions<TDatum>> {
     return {
@@ -60,7 +60,8 @@ export default function buildAxisLinear<TDatum>(
     allDatums: Datum<TDatum>[],
     gridDimensions: GridDimensions,
     width: number,
-    height: number
+    height: number,
+    barGroupIndexBySeriesIndex?: ReadonlyMap<number, number>
 ): Axis<TDatum> {
     const options = defaultAxisOptions(userOptions);
 
@@ -77,11 +78,29 @@ export default function buildAxisLinear<TDatum>(
 
     // Give the scale a home
     return options.scaleType === "time" || options.scaleType === "localTime"
-        ? buildTimeAxis(isPrimary, options, series, allDatums, isVertical, range, outerRange)
+        ? buildTimeAxis(
+              isPrimary,
+              options,
+              series,
+              allDatums,
+              isVertical,
+              range,
+              outerRange,
+              barGroupIndexBySeriesIndex
+          )
         : options.scaleType === "linear" || options.scaleType === "log"
-          ? buildLinearAxis(isPrimary, options, series, allDatums, isVertical, range, outerRange)
+          ? buildLinearAxis(
+                isPrimary,
+                options,
+                series,
+                allDatums,
+                isVertical,
+                range,
+                outerRange,
+                barGroupIndexBySeriesIndex
+            )
           : options.scaleType === "band"
-            ? buildBandAxis(isPrimary, options, series, isVertical, range, outerRange)
+            ? buildBandAxis(isPrimary, options, series, isVertical, range, outerRange, barGroupIndexBySeriesIndex)
             : (() => {
                   throw new Error("Invalid scale type");
               })();
@@ -94,7 +113,8 @@ function buildTimeAxis<TDatum>(
     allDatums: Datum<TDatum>[],
     isVertical: boolean,
     range: [number, number],
-    outerRange: [number, number]
+    outerRange: [number, number],
+    barGroupIndexBySeriesIndex?: ReadonlyMap<number, number>
 ): AxisTime<TDatum> {
     const isLocal = options.scaleType === "localTime";
     const scaleFn = isLocal ? scaleTime : scaleUtc;
@@ -232,25 +252,33 @@ function buildTimeAxis<TDatum>(
         scale.nice();
     }
 
-    const outerScale = scale.copy().range(outerRange);
-
     // Supplementary band scale
-    const primaryBandScale = isPrimary ? buildPrimaryBandScale(options, scale, series, range) : undefined;
-
-    const seriesBandScale = primaryBandScale ? buildSeriesBandScale(options, primaryBandScale, series) : undefined;
+    let primaryBandScale = isPrimary ? buildPrimaryBandScale(options, scale, series) : undefined;
 
     const primaryBandWidth = primaryBandScale?.bandwidth();
 
     if (options.padBandRange && primaryBandWidth) {
         const bandStart = scale.invert(0);
         const bandEnd = scale.invert(primaryBandWidth);
-        const diff = bandEnd.valueOf() - bandStart.valueOf();
+        const diff = Math.abs(bandEnd.valueOf() - bandStart.valueOf());
+        const domain = scale.domain();
+        const direction = Math.sign(domain[1].valueOf() - domain[0].valueOf()) || 1;
 
         scale.domain([
-            new Date(scale.domain()[0].valueOf() - diff / 2),
-            new Date(scale.domain()[1].valueOf() + diff / 2),
+            new Date(domain[0].valueOf() - (direction * diff) / 2),
+            new Date(domain[1].valueOf() + (direction * diff) / 2),
         ]);
+
+        // Расширение domain меняет расстояние между time-точками, поэтому ширину
+        // группы нужно вычислить повторно уже по окончательной шкале.
+        primaryBandScale = buildPrimaryBandScale(options, scale, series);
     }
+
+    const outerScale = scale.copy().range(outerRange);
+
+    const seriesBandScale = primaryBandScale
+        ? buildSeriesBandScale(options, primaryBandScale, series, barGroupIndexBySeriesIndex)
+        : undefined;
 
     const formatters = {} as AxisTime<TDatum>["formatters"];
 
@@ -300,7 +328,8 @@ function buildLinearAxis<TDatum>(
     allDatums: Datum<TDatum>[],
     isVertical: boolean,
     range: [number, number],
-    outerRange: [number, number]
+    outerRange: [number, number],
+    barGroupIndexBySeriesIndex?: ReadonlyMap<number, number>
 ): AxisLinear<TDatum> {
     const scale = options.scaleType === "log" ? scaleLog() : scaleLinear();
 
@@ -390,9 +419,11 @@ function buildLinearAxis<TDatum>(
 
     const outerScale = scale.copy().range(outerRange);
 
-    const primaryBandScale = isPrimary ? buildPrimaryBandScale(options, scale, series, range) : undefined;
+    const primaryBandScale = isPrimary ? buildPrimaryBandScale(options, scale, series) : undefined;
 
-    const seriesBandScale = primaryBandScale ? buildSeriesBandScale(options, primaryBandScale, series) : undefined;
+    const seriesBandScale = primaryBandScale
+        ? buildSeriesBandScale(options, primaryBandScale, series, barGroupIndexBySeriesIndex)
+        : undefined;
 
     const defaultFormat = scale.tickFormat();
 
@@ -441,9 +472,10 @@ function buildBandAxis<TDatum>(
     series: Series<TDatum>[],
     isVertical: boolean,
     range: [number, number],
-    outerRange: [number, number]
+    outerRange: [number, number],
+    barGroupIndexBySeriesIndex?: ReadonlyMap<number, number>
 ): AxisBand<TDatum> {
-    series = series.filter(d => d.secondaryAxisId === options.id);
+    series = isPrimary ? series : series.filter(d => d.secondaryAxisId === options.id);
 
     let isInvalid = false;
 
@@ -474,7 +506,7 @@ function buildBandAxis<TDatum>(
 
     const primaryBandScale = scale;
 
-    const seriesBandScale = buildSeriesBandScale(options, primaryBandScale, series);
+    const seriesBandScale = buildSeriesBandScale(options, primaryBandScale, series, barGroupIndexBySeriesIndex);
 
     const defaultFormat = (d: { toString: () => string }) => d;
 
@@ -561,36 +593,19 @@ function stackSeries<TDatum>(series: Series<TDatum>[], axisOptions: AxisOptions<
 function buildPrimaryBandScale<TDatum>(
     options: ResolvedAxisOptions<AxisOptions<TDatum>>,
     scale: ScaleTime<number, number, never> | ScaleLinear<number, number, never>,
-    series: Series<TDatum>[],
-    range: [number, number]
+    series: Series<TDatum>[]
 ) {
-    // Find the two closest points along axis
-    // Do not allow the band to be smaller than single pixel of the output range
-
-    const bandRange = Math.abs(range[1] - range[0]);
-
+    const scaleRange = scale.range();
+    const availableLength = Math.abs(scaleRange[1] - scaleRange[0]);
     const positions = series
         .filter(serie => serie.elementType === "bar")
         .flatMap(serie => serie.datums)
-        .map(datum => scale(datum.primaryValue ?? NaN))
-        .filter(Number.isFinite)
-        .sort((a, b) => a - b);
+        .map(datum => scale(datum.primaryValue ?? NaN));
+    const impliedBandWidth = getClosestBarPositionDistance(positions, availableLength);
 
-    let impliedBandWidth = bandRange;
-
-    for (let i = 0; i < positions.length; i++) {
-        const diff = positions[i] - positions[i - 1];
-
-        if (diff > 0) {
-            impliedBandWidth = Math.min(impliedBandWidth, diff);
-        }
-    }
-
-    impliedBandWidth = Math.min(impliedBandWidth, 1);
-
-    const bandDomain = d3Range(bandRange / impliedBandWidth);
-
-    const primaryBandScale = scaleBand(bandDomain, range)
+    // Для непрерывной оси достаточно одного виртуального band-слота длиной с
+    // минимальный интервал данных: его bandwidth и есть безопасная ширина группы.
+    const primaryBandScale = scaleBand([0], [0, impliedBandWidth])
         .round(false)
         .paddingOuter(options.outerBandPadding ?? 0)
         .paddingInner(options.innerBandPadding ?? 0);
@@ -601,17 +616,18 @@ function buildPrimaryBandScale<TDatum>(
 function buildSeriesBandScale<TDatum>(
     options: ResolvedAxisOptions<AxisOptions<TDatum>>,
     primaryBandScale: ScaleBand<number>,
-    series: Series<TDatum>[]
+    series: Series<TDatum>[],
+    barGroupIndexBySeriesIndex?: ReadonlyMap<number, number>
 ) {
-    const barIndexBySeriesIndex = createBarSeriesIndexBySeriesIndex(series);
-    const bandDomain = d3Range(barIndexBySeriesIndex.size);
+    const resolvedBarGroupIndexBySeriesIndex = barGroupIndexBySeriesIndex ?? createBarGroupIndexBySeriesIndex(series);
+    const bandDomain = d3Range(new Set(resolvedBarGroupIndexBySeriesIndex.values()).size);
 
     const seriesBandScale = scaleBand(bandDomain, [0, primaryBandScale.bandwidth()])
         .round(false)
         .paddingOuter(options.outerSeriesBandPadding ?? (options.outerBandPadding ? options.outerBandPadding / 2 : 0))
         .paddingInner(options.innerSeriesBandPadding ?? (options.innerBandPadding ? options.innerBandPadding / 2 : 0));
 
-    const scale = (seriesIndex: number) => seriesBandScale(barIndexBySeriesIndex.get(seriesIndex) ?? NaN);
+    const scale = (seriesIndex: number) => seriesBandScale(resolvedBarGroupIndexBySeriesIndex.get(seriesIndex) ?? NaN);
 
     return Object.assign(scale, seriesBandScale);
 }

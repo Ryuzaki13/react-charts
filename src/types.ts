@@ -216,11 +216,17 @@ export type AxisOptionsBase = {
     tickLabelStyle?: CSSProperties;
     tickCount?: number;
     shouldNice?: boolean;
+    /** Относительный промежуток между соседними группами bar на primary-оси. */
     innerBandPadding?: number;
+    /** Относительный свободный край внутри интервала, выделенного группе bar. */
     outerBandPadding?: number;
+    /** Относительный промежуток между bar-слотами разных серий внутри одной группы. */
     innerSeriesBandPadding?: number;
+    /** Относительное смещение первого и последнего bar от границ общей группы. */
     outerSeriesBandPadding?: number;
+    /** Минимальная ширина одного bar в пикселях для band и непрерывных primary-осей. */
     minBandSize?: number;
+    /** Максимальная ширина одного bar в пикселях; уменьшенный bar центрируется в своём слоте. */
     maxBandSize?: number;
     minDomainLength?: number;
     showGrid?: boolean;

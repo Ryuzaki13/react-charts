@@ -1,6 +1,7 @@
 import { Series } from "../../types";
 import {
-    createBarSeriesIndexBySeriesIndex,
+    createBarGroupIndexBySeriesIndex,
+    getClosestBarPositionDistance,
     groupSeriesByElementType,
     resolveSeriesElementType,
     shouldUseBarInteractionPosition,
@@ -77,7 +78,7 @@ describe("series element type", () => {
     });
 
     it("allocates band indices only for bar series", () => {
-        const indices = createBarSeriesIndexBySeriesIndex([
+        const indices = createBarGroupIndexBySeriesIndex([
             createSeries(0, "bar"),
             createSeries(1, "line"),
             createSeries(2, "bar"),
@@ -89,12 +90,41 @@ describe("series element type", () => {
         ]);
     });
 
-    it("uses shifted interaction positions only when every series is an unstacked bar", () => {
+    it("shares a band group inside one stacked axis and separates different axes", () => {
+        const first = createSeries(0, "bar");
+        const second = createSeries(1, "bar");
+        const third = createSeries(2, "bar");
+
+        first.secondaryAxisId = "left";
+        second.secondaryAxisId = "left";
+        third.secondaryAxisId = "right";
+
+        const indices = createBarGroupIndexBySeriesIndex(
+            [first, second, third],
+            [
+                { id: "left", stacked: true },
+                { id: "right", stacked: true },
+            ]
+        );
+
+        expect(Array.from(indices)).toEqual([
+            [0, 0],
+            [1, 0],
+            [2, 1],
+        ]);
+    });
+
+    it("uses the closest distinct primary position as the continuous band interval", () => {
+        expect(getClosestBarPositionDistance([0, 100, 60, 100, Number.NaN], 300)).toBe(40);
+        expect(getClosestBarPositionDistance([100, 100], 300)).toBe(300);
+    });
+
+    it("uses shifted interaction positions when every series is a bar", () => {
         const bar = createSeries(0, "bar");
         const line = createSeries(1, "line");
 
         expect(shouldUseBarInteractionPosition([bar], [{ stacked: false }])).toBe(true);
         expect(shouldUseBarInteractionPosition([bar, line], [{ stacked: false }])).toBe(false);
-        expect(shouldUseBarInteractionPosition([bar], [{ stacked: true }])).toBe(false);
+        expect(shouldUseBarInteractionPosition([bar], [{ stacked: true }])).toBe(true);
     });
 });
