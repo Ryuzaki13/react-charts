@@ -6,9 +6,9 @@ import { isDefined, translate } from "../utils/Utils";
 import useChartContext from "../utils/chartContext";
 //
 import { monotoneX } from "../utils/curveMonotone";
+import { DatumLabel, getDatumLabelFontSize } from "./DatumLabel";
 import { datumElementTransition } from "./datumElementTransition";
 
-const defaultDatumLabelFontSize = 10;
 const datumLabelOffset = 8;
 const datumLabelEdgePadding = 2;
 
@@ -59,12 +59,9 @@ export default function Line<TDatum>({
                 lineFn.defined(datum => [_x(datum), _y(datum)].every(isDefined));
 
                 const linePath =
-                    elementType === "area" || elementType === "line"
-                        ? (lineFn(series.datums) ?? undefined)
-                        : undefined;
+                    elementType === "area" || elementType === "line" ? (lineFn(series.datums) ?? undefined) : undefined;
 
-                const showDatumElements =
-                    secondaryAxis.showDatumElements ?? (elementType === "bubble" || "onFocus");
+                const showDatumElements = secondaryAxis.showDatumElements ?? (elementType === "bubble" || "onFocus");
 
                 return (
                     <g key={`lines-${i}`}>
@@ -185,36 +182,18 @@ export function LineDatumLabels<TDatum>({
                             const layout = getDatumLabelLayout(x, y, gridDimensions, secondaryAxis.datumLabelStyle);
 
                             return (
-                                <text
+                                <DatumLabel
                                     key={`line-label-${datumIndex}`}
-                                    data-datum-label=""
-                                    data-datum-label-display={secondaryAxis.datumLabelStyle?.display}
-                                    data-datum-label-key={JSON.stringify([
-                                        secondaryAxis.id ?? null,
-                                        series.id,
-                                        datum.index,
-                                    ])}
-                                    data-datum-label-primary-position={primaryAxis.isVertical ? y : x}
-                                    x={layout.x}
-                                    y={layout.y}
-                                    style={{
-                                        fill:
-                                            dataStyle.fill ??
-                                            dataStyle.stroke ??
-                                            style.fill ??
-                                            style.stroke ??
-                                            style.color ??
-                                            "currentColor",
-                                        dominantBaseline: layout.dominantBaseline,
-                                        fontSize: defaultDatumLabelFontSize,
-                                        pointerEvents: "none",
-                                        textAnchor: layout.textAnchor,
-                                        transition: "all .3s ease-out",
-                                        ...secondaryAxis.datumLabelStyle,
+                                    datum={datum}
+                                    layout={{
+                                        ...layout,
+                                        primaryPosition: primaryAxis.isVertical ? y : x,
                                     }}
-                                >
-                                    {getDatumLabel(datum, secondaryAxis)}
-                                </text>
+                                    secondaryAxis={secondaryAxis}
+                                    series={series}
+                                    seriesStyle={style}
+                                    datumStyle={dataStyle}
+                                />
                             );
                         })}
                     </g>
@@ -258,12 +237,6 @@ function getSecondaryStart<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDa
     return secondaryAxis.scale(0) ?? NaN;
 }
 
-function getDatumLabel<TDatum>(datum: Datum<TDatum>, secondaryAxis: Axis<TDatum>) {
-    return (secondaryAxis.formatters as { datumLabel: (value: any) => React.ReactNode }).datumLabel(
-        datum.secondaryValue
-    );
-}
-
 function getDatumLabelLayout<TDatum>(
     x: number,
     y: number,
@@ -276,11 +249,7 @@ function getDatumLabelLayout<TDatum>(
     const labelX = Math.max(minX, Math.min(x, maxX));
     const horizontalAnchorPadding = fontSize * 2;
     const textAnchor =
-        x <= horizontalAnchorPadding
-            ? "start"
-            : x >= gridDimensions.width - horizontalAnchorPadding
-              ? "end"
-              : "middle";
+        x <= horizontalAnchorPadding ? "start" : x >= gridDimensions.width - horizontalAnchorPadding ? "end" : "middle";
 
     const aboveY = y - datumLabelOffset;
     const minBaselineY = fontSize + datumLabelEdgePadding;
@@ -303,21 +272,6 @@ function getDatumLabelLayout<TDatum>(
         dominantBaseline: "auto",
         textAnchor,
     } as const;
-}
-
-function getDatumLabelFontSize(labelStyle: React.CSSProperties | undefined) {
-    const fontSize = labelStyle?.fontSize;
-
-    if (typeof fontSize === "number") {
-        return fontSize;
-    }
-
-    if (typeof fontSize === "string") {
-        const parsed = parseFloat(fontSize);
-        return Number.isNaN(parsed) ? defaultDatumLabelFontSize : parsed;
-    }
-
-    return defaultDatumLabelFontSize;
 }
 
 function clampPxToAxis<TDatum>(px: number, axis: Axis<TDatum>) {

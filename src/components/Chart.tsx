@@ -4,22 +4,23 @@ import React, { ComponentPropsWithoutRef } from "react";
 import useGetLatest from "../hooks/useGetLatest";
 import useIsomorphicLayoutEffect from "../hooks/useIsomorphicLayoutEffect";
 import Bar, { getPrimary } from "../seriesTypes/Bar";
+import BarDatumLabels from "../seriesTypes/BarDatumLabels";
 import Line, { LineDatumLabels } from "../seriesTypes/Line";
 import { updateDatumLabelVisibility } from "../seriesTypes/datumLabelCollision";
 //
 import {
-	Axis,
-	AxisDimensions,
-	AxisOptions,
-	AxisOptionsWithScaleType,
-	BuildAxisOptions,
-	ChartContextValue,
-	ChartOptions,
-	Datum,
-	GridDimensions,
-	RequiredChartOptions,
-	Series,
-	UserSerie,
+    Axis,
+    AxisDimensions,
+    AxisOptions,
+    AxisOptionsWithScaleType,
+    BuildAxisOptions,
+    ChartContextValue,
+    ChartOptions,
+    Datum,
+    GridDimensions,
+    RequiredChartOptions,
+    Series,
+    UserSerie,
 } from "../types";
 import { getDatumStatus, getSeriesStatus, materializeStyles } from "../utils/Utils";
 import buildAxisLinear from "../utils/buildAxis.linear";
@@ -636,12 +637,7 @@ function ChartInner<TDatum>({
 
     const focusedDatumAffectsDatumLabels =
         focusedDatum &&
-        secondaryAxes.some(
-            axis =>
-                axis.id === focusedDatum.secondaryAxisId &&
-                axis.showDatumLabels === "onFocus" &&
-                focusedDatum.elementType !== "bar"
-        )
+        secondaryAxes.some(axis => axis.id === focusedDatum.secondaryAxisId && axis.showDatumLabels === "onFocus")
             ? focusedDatum
             : null;
 
@@ -655,9 +651,16 @@ function ChartInner<TDatum>({
                 return null;
             }
 
-            return groupSeriesByElementType(series)
-                .filter(([elementType]) => elementType !== "bar")
-                .map(([elementType, elementSeries]) => (
+            return groupSeriesByElementType(series).map(([elementType, elementSeries]) =>
+                elementType === "bar" ? (
+                    <BarDatumLabels
+                        key={`datum-labels-${axisId ?? "__default__"}-${elementType}`}
+                        focusedDatum={focusedDatumAffectsDatumLabels}
+                        primaryAxis={primaryAxis}
+                        secondaryAxis={secondaryAxis}
+                        series={elementSeries}
+                    />
+                ) : (
                     <LineDatumLabels
                         key={`datum-labels-${axisId ?? "__default__"}-${elementType}`}
                         focusedDatum={focusedDatumAffectsDatumLabels}
@@ -665,7 +668,8 @@ function ChartInner<TDatum>({
                         secondaryAxis={secondaryAxis}
                         series={elementSeries}
                     />
-                ));
+                )
+            );
         });
     }, [focusedDatumAffectsDatumLabels, getSeriesInfo]);
 
